@@ -78,6 +78,26 @@ class General
     /**
      * @return Response|null
      */
+    public function rename()
+    {
+        $from = absolutePath(request_path(), request('from'));
+        if ( ! $from) {
+            return jsonResponse(['message' => 'File/folder does not exist'], 404);
+        }
+        $to = sanitizePath(request_path().'/'.request('to'));
+
+        filesystem()->rename($from, $to);
+
+        if ( ! filesystem()->exists($to)) {
+            return jsonResponse(['message' => 'Could not rename'], 500);
+        }
+
+        return jsonResponse(['message' => 'Rename successful']);
+    }
+
+    /**
+     * @return Response|null
+     */
     public function copy()
     {
         return $this->performCopyOperation();
