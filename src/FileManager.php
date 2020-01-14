@@ -24,6 +24,7 @@ class FileManager
     private function preventJailBreak()
     {
         $path = base_path(request('path'));
+
         if ( ! $path) {
             abort(403);
         }

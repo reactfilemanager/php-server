@@ -4,6 +4,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mime\MimeTypes;
 
 $container = [];
 
@@ -99,6 +100,19 @@ function jsonResponse($array, $code = 200)
 }
 
 /**
+ * @return MimeTypes
+ */
+function mimeTypes()
+{
+    global $container;
+    if ( ! isset($container['mime_types'])) {
+        $container['mime_types'] = new MimeTypes();
+    }
+
+    return $container['mime_types'];
+}
+
+/**
  * @return Finder
  */
 function finder()
@@ -120,26 +134,65 @@ function filesystem()
 }
 
 /**
- * @param $key
+ * @param $path
  * @param  mixed  $value
  *
  * @return mixed|null
  */
-function config($key, $value = null)
+function config($path, $value = null)
 {
     global $container;
     if ( ! isset($container['config'])) {
         $container['config'] = include __DIR__.'/config.php';
     }
     if ( ! $value) {
-        if (isset($container['config'][$key])) {
-            return $container['config'][$key];
+        return getConfig($path);
+    } else {
+        return setConfig($path, $value);
+    }
+}
+
+/**
+ * @param $path
+ *
+ * @return null
+ */
+function getConfig($path)
+{
+    global $container;
+    $cf    = $container['config'];
+    $_path = explode('.', $path);
+    foreach ($_path as $_p) {
+        if (isset($cf[$_p])) {
+            $cf = $cf[$_p];
         } else {
             return null;
         }
-    } else {
-        return $container['config'][$key] = $value;
     }
+
+    return $cf;
+}
+
+/**
+ * @param $path
+ * @param $value
+ *
+ * @return null
+ */
+function setConfig($path, $value)
+{
+    global $container;
+    $cf    = &$container['config'];
+    $_path = explode('.', $path);
+    $last  = array_pop($_path);
+    foreach ($_path as $_p) {
+        if (isset($cf[$_p])) {
+            $cf = &$cf[$_p];
+        } else {
+            return null;
+        }
+    }
+    $cf[$last] = $value;
 }
 
 /**
@@ -173,10 +226,11 @@ function endsWith($haystack, $needle)
 
 /**
  * @param $code
+ * @param  array  $data
  */
-function abort($code)
+function abort($code, $data = ['message' => 'Aborted'])
 {
-    $response = jsonResponse(['message' => 'Aborted']);
+    $response = jsonResponse($data);
     $response->setStatusCode($code);
     $response->prepare(request())->send();
     die;
@@ -204,4 +258,52 @@ function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
         'extension'  => $file->getExtension(),
         'type'       => $file->getType(),
     ];
+}
+
+/**
+ * @param $name
+ * @param  string  $ext
+ *
+ * @return string|string[]|null
+ */
+function getSafePath($name, $ext = '')
+{
+    $filepath = sanitizePath(request_path().'/'.$name);
+    if ($ext !== '') {
+        $filepath .= '.'.$ext;
+    }
+    $i = 1;
+    while (filesystem()->exists($filepath)) {
+        $filepath = sanitizePath(request_path().'/'.$name.'('.($i++).')');
+        if ($ext !== '') {
+            $filepath .= '.'.$ext;
+        }
+    }
+
+    return $filepath;
+}
+
+/**
+ * @param $filepath
+ *
+ * @return string|Response|null
+ */
+function ensureSafeFile($filepath)
+{
+    $mime  = mimeTypes()->guessMimeType($filepath);
+    $valid = false;
+    foreach (config('uploads.allowed_types') as $allowed_type) {
+        if (preg_match("#^{$allowed_type}$#", $mime)) {
+            $valid = true;
+            break;
+        }
+    }
+
+    if ( ! $valid) {
+        filesystem()->remove($filepath);
+
+        abort(403, ['message' => 'This type of file is not allowed to be downloaded or uploaded']);
+    }
+
+    return $mime;
 }

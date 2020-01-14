@@ -3,6 +3,8 @@
 namespace Rocky\FileManager\Plugins;
 
 use Symfony\Component\Finder\SplFileInfo;
+use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 
 class General
@@ -172,5 +174,49 @@ class General
         }
 
         filesystem()->remove($target);
+    }
+
+    /**
+     * @return Response|null
+     */
+    public function upload()
+    {
+        /** @var UploadedFile $file */
+        $file = request()->files->get('file');
+        $file->move(request_path(), $file->getClientOriginalName());
+
+        $filepath = absolutePath(request_path(), $file->getClientOriginalName());
+
+        if (filesystem()->exists($filepath)) {
+            return jsonResponse(['message' => 'File upload successful']);
+        }
+
+        return jsonResponse(['message' => 'Could not move uploaded file'], 500);
+    }
+
+    /**
+     * @return Response|null
+     */
+    public function remote_download()
+    {
+        $url  = request('url');
+        $name = pathinfo($url, PATHINFO_FILENAME);
+        $ext  = pathinfo($url, PATHINFO_EXTENSION);
+
+        $filepath = getSafePath($name, $ext);
+
+        filesystem()->copy($url, $filepath);
+
+        if ( ! filesystem()->exists($filepath)) {
+            return jsonResponse(['message' => 'Could not download remote file'], 500);
+        }
+
+        $mime    = ensureSafeFile($filepath);
+        $ext     = mimeTypes()->getExtensions($mime)[0];
+        $new_path = getSafePath($name, $ext);
+        filesystem()->rename($filepath, $new_path);
+
+        $relative_path = substr($new_path, strlen(base_path()));
+        return jsonResponse(['message' => 'The file has been downloaded', 'file' => $relative_path]);
     }
 }
