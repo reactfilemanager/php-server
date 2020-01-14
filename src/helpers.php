@@ -246,17 +246,16 @@ function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
     $path = request('path');
 
     return [
-        'name'       => $file->getFilename(),
-        'path'       => sanitizePath($path.'/'.$file->getRelativePathname()),
-        'is_dir'     => $file->isDir(),
-        'is_file'    => $file->isFile(),
-        'is_link'    => $file->isLink(),
-        'readable'   => $file->isReadable(),
-        'writable'   => $file->isWritable(),
-        'executable' => $file->isExecutable(),
-        'size'       => $file->getSize(),
-        'extension'  => $file->getExtension(),
-        'type'       => $file->getType(),
+        'name'          => $file->getFilename(),
+        'path'          => sanitizePath($path.'/'.$file->getRelativePathname()),
+        'is_dir'        => $file->isDir(),
+        'is_file'       => $file->isFile(),
+        'is_link'       => $file->isLink(),
+        'is_readable'   => $file->isReadable(),
+        'is_writable'   => $file->isWritable(),
+        'is_executable' => $file->isExecutable(),
+        'size'          => $file->getSize(),
+        'extension'     => $file->getExtension(),
     ];
 }
 
