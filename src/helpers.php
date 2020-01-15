@@ -1,10 +1,12 @@
 <?php
 
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mime\MimeTypes;
+use Symfony\Contracts\Cache\ItemInterface;
 
 $container = [];
 
@@ -43,7 +45,7 @@ function absolutePath(...$parts)
  */
 function sanitizePath($path)
 {
-    return preg_replace('(\/+)', '/', $path);
+    return preg_replace('(/+)', '/', $path);
 }
 
 /**
@@ -134,6 +136,19 @@ function filesystem()
 }
 
 /**
+ * @return FilesystemAdapter
+ */
+function cache()
+{
+    global $container;
+    if ( ! isset($container['cache'])) {
+        $container['cache'] = new FilesystemAdapter('_thumb_cache', 0, config('cache'));
+    }
+
+    return $container['cache'];
+}
+
+/**
  * @param $path
  * @param  mixed  $value
  *
@@ -177,7 +192,7 @@ function getConfig($path)
  * @param $path
  * @param $value
  *
- * @return null
+ * @return bool
  */
 function setConfig($path, $value)
 {
@@ -189,10 +204,12 @@ function setConfig($path, $value)
         if (isset($cf[$_p])) {
             $cf = &$cf[$_p];
         } else {
-            return null;
+            return false;
         }
     }
     $cf[$last] = $value;
+
+    return true;
 }
 
 /**
@@ -227,6 +244,8 @@ function endsWith($haystack, $needle)
 /**
  * @param $code
  * @param  array  $data
+ *
+ * @return null
  */
 function abort($code, $data = ['message' => 'Aborted'])
 {
@@ -305,4 +324,89 @@ function ensureSafeFile($filepath)
     }
 
     return $mime;
+}
+
+/**
+ * @param $path
+ *
+ * @return string|false
+ * @throws \Psr\Cache\InvalidArgumentException
+ */
+function getThumb($path)
+{
+    $thumbDir = __DIR__.'/thumbs/';
+    $thumbExt = '.png';
+
+    $file  = new SplFileInfo($path);
+    $thumb = null;
+
+    if ($file->isDir()) {
+        $thumb = $thumbDir.'folder'.$thumbExt;
+    } elseif ($file->isLink()) {
+        $thumb = $thumbDir.'symlink'.$thumbExt;
+    } else {
+        $thumbImage = cache()->get(md5_file($file->getRealPath()), function (ItemInterface $_) use ($file) {
+
+            return genThumb($file);
+        });
+
+        $thumb = tempnam("/tmp", $file->getFilename());
+
+        $handle = fopen($thumb, "w");
+        fwrite($handle, $thumbImage);
+        fclose($handle);
+    }
+
+    return new SplFileInfo($thumb);
+}
+
+/**
+ * @param $filepath
+ *
+ * @throws \Psr\Cache\InvalidArgumentException
+ */
+function deleteThumb($filepath)
+{
+    cache()->delete(md5_file($filepath));
+}
+
+/**
+ * @param  SplFileInfo  $file
+ *
+ * @return false|string
+ */
+function genThumb(SplFileInfo $file)
+{
+    $ext = $file->getExtension();
+    if ( ! in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
+        return false;
+    }
+
+    $path     = $file->getRealPath();
+    $resource = null;
+
+    if ($ext == 'gif') {
+        $resource = imagecreatefromgif($path);
+    } elseif ($ext == 'png') {
+        $resource = imagecreatefrompng($path);
+    } elseif ($ext == 'jpg' || $ext == 'jpeg') {
+        $resource = imagecreatefromjpeg($path);
+    } elseif ($ext == 'webp') {
+        $resource = imagecreatefromwebp($path);
+    }
+    $width          = imagesx($resource);
+    $height         = imagesy($resource);
+    $desired_height = 150;
+    $desired_width  = floor($width * ($desired_height / $height));
+    $virtual_image  = imagecreatetruecolor($desired_width, $desired_height);
+    imagesavealpha($virtual_image, true);
+    $trans_colour = imagecolorallocatealpha($virtual_image, 0, 0, 0, 127);
+    imagefill($virtual_image, 0, 0, $trans_colour);
+    imagecopyresized($virtual_image, $resource, 0, 0, 0, 0, $desired_width, $desired_height, $width, $height);
+    ob_start();
+    imagepng($virtual_image);
+    $thumbImage = ob_get_contents();
+    ob_end_clean();
+
+    return $thumbImage;
 }

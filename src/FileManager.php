@@ -2,8 +2,11 @@
 
 namespace Rocky\FileManager;
 
+use Psr\Cache\InvalidArgumentException;
+use SplFileInfo;
 use Symfony\Component\ErrorHandler\Debug;
 use Symfony\Component\ErrorHandler\ErrorHandler;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class FileManager
@@ -19,20 +22,56 @@ class FileManager
     }
 
     /**
-     *
+     * @param  null  $path
      */
-    private function preventJailBreak()
+    private function _preventJailBreak($path = null)
     {
-        $path = base_path(request('path'));
-
+        $path = $path ? $path : base_path(request('path'));
         if ( ! $path) {
-            abort(403);
+            abort(403, ['message' => 'Invalid request']);
         }
 
         $root = realpath(config('root'));
         // the path MUST start with the root
         if ( ! startsWith($path, $root)) {
-            abort(403);
+            abort(403, ['message' => 'Jailbreak detected']);
+        }
+    }
+
+    /**
+     * @return Response
+     * @throws InvalidArgumentException
+     */
+    private function _sendThumb()
+    {
+        $thumbFile = request('thumb');
+        $file      = base_path($thumbFile);
+        $thumb     = null;
+        if ( ! $file) {
+            $thumb = new SplFileInfo(__DIR__.'/thumbs/404.png');
+        } else {
+            $this->_preventJailBreak($file);
+
+            $thumb = getThumb($file);
+            if ( ! $thumb) {
+                $thumb = new SplFileInfo(__DIR__.'/thumbs/file.png');
+            }
+        }
+
+        $response = new BinaryFileResponse($thumb->getRealPath());
+
+        return $this->_send($response);
+    }
+
+    /**
+     * @param  Response  $response
+     *
+     * @return Response
+     */
+    private function _send(Response $response)
+    {
+        if ($response) {
+            return $response->prepare(request())->send();
         }
     }
 
@@ -43,7 +82,15 @@ class FileManager
      */
     public function run()
     {
-        $this->preventJailBreak();
+        // look for thumb request
+        if (request('thumb')) {
+            $response = $this->_sendThumb();
+
+            return $this->_send($response);
+        }
+
+        // secure the path
+        $this->_preventJailBreak();
 
         // look up the requested plugin and it's action(method)
         $plugin = request('plugin');
@@ -52,7 +99,7 @@ class FileManager
             // plugin does not exist
             $response = response()->setStatusCode(403);
 
-            return $this->send($response);
+            return $this->_send($response);
         }
 
         $class = '\Rocky\FileManager\Plugins\\'.$plugin;
@@ -60,7 +107,7 @@ class FileManager
             // class not found
             $response = response()->setStatusCode(403);
 
-            return $this->send($response);
+            return $this->_send($response);
         }
 
         $instance = new $class();
@@ -69,24 +116,12 @@ class FileManager
             // action not found
             $response = response()->setStatusCode(403);
 
-            return $this->send($response);
+            return $this->_send($response);
         }
 
         /** @var Response $response */
         $response = $instance->{$action}();
 
-        return $this->send($response);
-    }
-
-    /**
-     * @param  Response  $response
-     *
-     * @return Response
-     */
-    private function send(Response $response)
-    {
-        if ($response) {
-            return $response->prepare(request())->send();
-        }
+        return $this->_send($response);
     }
 }

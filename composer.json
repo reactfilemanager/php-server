@@ -16,7 +16,9 @@
     "symfony/http-foundation": "^5.0",
     "symfony/error-handler": "^5.0",
     "symfony/mime": "^5.0",
-    "ext-json": "*"
+    "ext-json": "*",
+    "symfony/cache": "^5.0",
+    "ext-gd": "*"
   },
   "autoload": {
     "psr-4": {

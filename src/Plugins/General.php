@@ -2,7 +2,9 @@
 
 namespace Rocky\FileManager\Plugins;
 
+use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Finder\SplFileInfo;
+use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -129,6 +131,7 @@ class General
      * @param  bool  $move
      *
      * @return Response|null
+     * @throws InvalidArgumentException
      */
     private function performCopyOperation($move = false)
     {
@@ -146,6 +149,7 @@ class General
         if (is_file($source)) {
             filesystem()->copy($source, $destination);
             if ($move) {
+                deleteThumb($source);
                 filesystem()->remove($source);
             }
         } else {
@@ -188,12 +192,14 @@ class General
      * @param $target
      *
      * @return void
+     * @throws InvalidArgumentException
      */
     private function recursive_delete($target)
     {
         $files = finder()->files()->in($target);
         /** @var SplFileInfo $file */
         foreach ($files as $file) {
+            deleteThumb($file->getRealPath());
             filesystem()->remove($file->getRealPath());
         }
 
@@ -205,9 +211,11 @@ class General
         }
         $_dirs = array_reverse($_dirs);
         foreach ($_dirs as $dir) {
+            deleteThumb($dir->getRealPath());
             filesystem()->remove($dir);
         }
 
+        deleteThumb($target);
         filesystem()->remove($target);
     }
 
