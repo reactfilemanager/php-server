@@ -107,6 +107,7 @@ class General
 
     /**
      * @return Response|null
+     * @throws InvalidArgumentException
      */
     public function move()
     {
@@ -115,6 +116,7 @@ class General
 
     /**
      * @return Response|null
+     * @throws InvalidArgumentException
      */
     public function delete()
     {
@@ -122,7 +124,12 @@ class General
         if ( ! filesystem()->exists($target)) {
             return jsonResponse(['message' => 'target does not exist'], 403);
         }
-        $this->recursive_delete($target);
+        if(is_file($target)) {
+            deleteThumb($target);
+            filesystem()->remove($target);
+        } else {
+            $this->recursive_delete($target);
+        }
 
         return jsonResponse(['message' => 'Delete successful.']);
     }
