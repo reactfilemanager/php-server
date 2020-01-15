@@ -4,7 +4,6 @@ namespace Rocky\FileManager\Plugins;
 
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Finder\SplFileInfo;
-use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -40,6 +39,11 @@ class General
     public function new_dir()
     {
         $new_path = sanitizePath(request_path().'/'.request('dirname'));
+
+        if (filesystem()->exists($new_path)) {
+            return jsonResponse(['message' => 'Directory exists'], 403);
+        }
+
         filesystem()->mkdir($new_path);
         if (filesystem()->exists($new_path)) {
             return jsonResponse(['message' => 'Directory created']);
@@ -54,6 +58,11 @@ class General
     public function new_file()
     {
         $new_file = sanitizePath(request_path().'/'.request('filename'));
+
+        if (filesystem()->exists($new_file)) {
+            return jsonResponse(['message' => 'File exists']);
+        }
+
         $content  = request('content');
 
         filesystem()->appendToFile($new_file, $content);
@@ -99,6 +108,7 @@ class General
 
     /**
      * @return Response|null
+     * @throws InvalidArgumentException
      */
     public function copy()
     {
