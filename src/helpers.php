@@ -339,22 +339,29 @@ function getThumb($path)
 
     $file  = new SplFileInfo($path);
     $thumb = null;
+    $ext   = $file->getExtension();
 
     if ($file->isDir()) {
         $thumb = $thumbDir.'folder'.$thumbExt;
     } elseif ($file->isLink()) {
         $thumb = $thumbDir.'symlink'.$thumbExt;
     } else {
-        $thumbImage = cache()->get(md5_file($file->getRealPath()), function (ItemInterface $_) use ($file) {
+        if (in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
+            $thumbImage = cache()->get(md5_file($file->getRealPath()), function (ItemInterface $_) use ($file) {
 
-            return genThumb($file);
-        });
+                return genThumb($file);
+            });
 
-        $thumb = tempnam("/tmp", $file->getFilename());
+            $thumb = tempnam("/tmp", $file->getFilename());
 
-        $handle = fopen($thumb, "w");
-        fwrite($handle, $thumbImage);
-        fclose($handle);
+            $handle = fopen($thumb, "w");
+            fwrite($handle, $thumbImage);
+            fclose($handle);
+        } elseif (filesystem()->exists($thumbDir.$ext.$thumbExt)) {
+            $thumb = $thumbDir.$ext.$thumbExt;
+        } else {
+            return null;
+        }
     }
 
     return new SplFileInfo($thumb);
@@ -378,9 +385,6 @@ function deleteThumb($filepath)
 function genThumb(SplFileInfo $file)
 {
     $ext = $file->getExtension();
-    if ( ! in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
-        return false;
-    }
 
     $path     = $file->getRealPath();
     $resource = null;

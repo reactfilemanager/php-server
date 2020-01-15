@@ -46,6 +46,7 @@ class FileManager
     {
         $thumbFile = request('thumb');
         $file      = base_path($thumbFile);
+
         $thumb     = null;
         if ( ! $file) {
             $thumb = new SplFileInfo(__DIR__.'/thumbs/404.png');
