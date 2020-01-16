@@ -49,6 +49,27 @@ function sanitizePath($path)
 }
 
 /**
+ * @param  string  $path
+ */
+function preventJailBreak($path = null)
+{
+    if ($path === false) {
+        return;
+    }
+
+    $path = $path ? $path : base_path(request('path'));
+    if ( ! $path) {
+        abort(403, ['message' => 'Invalid request']);
+    }
+
+    $root = realpath(config('root'));
+    // the path MUST start with the root
+    if ( ! startsWith($path, $root)) {
+        abort(403, ['message' => 'Jailbreak detected']);
+    }
+}
+
+/**
  * @param  string  $key
  *
  * @return Request|mixed

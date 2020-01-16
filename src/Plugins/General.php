@@ -39,6 +39,7 @@ class General
     public function new_dir()
     {
         $new_path = sanitizePath(request_path().'/'.request('dirname'));
+        preventJailBreak($new_path);
 
         if (filesystem()->exists($new_path)) {
             return jsonResponse(['message' => 'Directory exists'], 403);
@@ -58,12 +59,13 @@ class General
     public function new_file()
     {
         $new_file = sanitizePath(request_path().'/'.request('filename'));
+        preventJailBreak($new_file);
 
         if (filesystem()->exists($new_file)) {
             return jsonResponse(['message' => 'File exists']);
         }
 
-        $content  = request('content');
+        $content = request('content');
 
         filesystem()->appendToFile($new_file, $content);
 
@@ -76,6 +78,7 @@ class General
     public function update()
     {
         $filepath = absolutePath(request_path(), request('target'));
+        preventJailBreak($filepath);
         if ( ! $filepath) {
             return jsonResponse(['message' => 'Requested file does not exist'], 404);
         }
@@ -92,10 +95,12 @@ class General
     public function rename()
     {
         $from = absolutePath(request_path(), request('from'));
+        preventJailBreak($from);
         if ( ! $from) {
             return jsonResponse(['message' => 'File/folder does not exist'], 404);
         }
         $to = sanitizePath(request_path().'/'.request('to'));
+        preventJailBreak($to);
 
         filesystem()->rename($from, $to);
 
@@ -131,10 +136,11 @@ class General
     public function delete()
     {
         $target = sanitizePath(request_path().'/'.request('target'));
+        preventJailBreak($target);
         if ( ! filesystem()->exists($target)) {
             return jsonResponse(['message' => 'target does not exist'], 403);
         }
-        if(is_file($target)) {
+        if (is_file($target)) {
             deleteThumb($target);
             filesystem()->remove($target);
         } else {
@@ -152,31 +158,41 @@ class General
      */
     private function performCopyOperation($move = false)
     {
-        $source      = sanitizePath(request_path().'/'.request('source'));
-        $destination = sanitizePath(request_path().'/'.request('destination'));
+        $source      = absolutePath(base_path().request('source'));
+        $destination = absolutePath(base_path().request('destination'));
+
+        if ( ! $source || ! $destination) {
+            return jsonResponse(['message' => 'Invalid request'], 403);
+        }
+
+        preventJailBreak($source);
+        preventJailBreak($destination);
 
         if ( ! filesystem()->exists($source)) {
             return jsonResponse(['message' => 'Source does not exist'], 403);
         }
 
-        if (filesystem()->exists($destination)) {
+        $_source      = new \SplFileInfo($source);
+        $_destination = sanitizePath($destination.'/'.$_source->getFilename());
+
+        if (filesystem()->exists($_destination)) {
             return jsonResponse(['message' => 'Destination already exists'], 403);
         }
 
-        if (is_file($source)) {
-            filesystem()->copy($source, $destination);
+        if ($_source->isFile()) {
+            filesystem()->copy($source, $_destination);
             if ($move) {
                 deleteThumb($source);
                 filesystem()->remove($source);
             }
         } else {
-            $this->recursive_copy($source, $destination);
+            $this->recursive_copy($source, $_destination);
             if ($move) {
                 $this->recursive_delete($source);
             }
         }
 
-        if (filesystem()->exists($destination)) {
+        if (filesystem()->exists($_destination)) {
             return jsonResponse(['message' => $move ? 'Moved!' : 'Copied!']);
         }
 
@@ -228,7 +244,7 @@ class General
         }
         $_dirs = array_reverse($_dirs);
         foreach ($_dirs as $dir) {
-            deleteThumb($dir->getRealPath());
+            deleteThumb($dir);
             filesystem()->remove($dir);
         }
 

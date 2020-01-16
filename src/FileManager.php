@@ -22,23 +22,6 @@ class FileManager
     }
 
     /**
-     * @param  null  $path
-     */
-    private function _preventJailBreak($path = null)
-    {
-        $path = $path ? $path : base_path(request('path'));
-        if ( ! $path) {
-            abort(403, ['message' => 'Invalid request']);
-        }
-
-        $root = realpath(config('root'));
-        // the path MUST start with the root
-        if ( ! startsWith($path, $root)) {
-            abort(403, ['message' => 'Jailbreak detected']);
-        }
-    }
-
-    /**
      * @return Response
      * @throws InvalidArgumentException
      */
@@ -51,7 +34,7 @@ class FileManager
         if ( ! $file) {
             $thumb = new SplFileInfo(__DIR__.'/thumbs/404.png');
         } else {
-            $this->_preventJailBreak($file);
+            preventJailBreak($file);
 
             $thumb = getThumb($file);
             if ( ! $thumb) {
@@ -80,6 +63,7 @@ class FileManager
      * Run the app
      *
      * @return Response
+     * @throws InvalidArgumentException
      */
     public function run()
     {
@@ -91,7 +75,7 @@ class FileManager
         }
 
         // secure the path
-        $this->_preventJailBreak();
+        preventJailBreak();
 
         // look up the requested plugin and it's action(method)
         $plugin = request('plugin');
