@@ -181,13 +181,13 @@ class General
 
         if ($_source->isFile()) {
             filesystem()->copy($source, $_destination);
-            if ($move) {
+            if ($move && filesystem()->exists($_destination)) {
                 deleteThumb($source);
                 filesystem()->remove($source);
             }
         } else {
             $this->recursive_copy($source, $_destination);
-            if ($move) {
+            if ($move && filesystem()->exists($_destination)) {
                 $this->recursive_delete($source);
             }
         }
@@ -205,19 +205,26 @@ class General
      */
     private function recursive_copy($source, $destination)
     {
+        $items = 0;
         $files = finder()->files()->in($source);
         /** @var SplFileInfo $file */
         foreach ($files as $file) {
+            $items++;
             filesystem()->copy($file->getRealPath(), $destination.'/'.$file->getRelativePathname());
         }
 
         $dirs = finder()->directories()->in($source);
         /** @var SplFileInfo $dir */
         foreach ($dirs as $dir) {
+            $items++;
             $path = $destination.'/'.$dir->getRelativePathname();
             if ( ! filesystem()->exists($path)) {
                 filesystem()->mkdir($path);
             }
+        }
+
+        if ($items === 0) {
+            filesystem()->mkdir($destination);
         }
     }
 
