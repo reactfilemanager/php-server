@@ -2,3 +2,5 @@
 .cache/*
 vendor
 storage
+tmp/storage/*
+tmp/.cache/*

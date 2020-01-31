@@ -1,0 +1,11 @@
+<?php
+
+$dir = __DIR__;
+$cmd = "cd {$dir} && php -S 127.0.0.1:8000";
+
+$proc = popen($cmd, 'r');
+
+while ( ! feof($proc)) {
+    echo fread($proc, 1024);
+    @flush();
+}
