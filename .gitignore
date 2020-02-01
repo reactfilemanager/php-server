@@ -1,6 +1,6 @@
 .idea
-.cache/*
+tmp/.cache/*
 vendor
-storage
+tmp/storage
 tmp/storage/*
 tmp/.cache/*

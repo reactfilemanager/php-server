@@ -8,6 +8,7 @@ use Symfony\Component\ErrorHandler\Debug;
 use Symfony\Component\ErrorHandler\ErrorHandler;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class FileManager
 {
@@ -60,6 +61,44 @@ class FileManager
     }
 
     /**
+     * Download a file
+     *
+     * @return Response|null
+     */
+    private function _downloadFile()
+    {
+        $thumbFile = request('download');
+        $file      = base_path($thumbFile);
+        if(!$file || !is_file($file)) {
+            return abort(404);
+        }
+        preventJailBreak($file);
+
+        $file = new BinaryFileResponse($file);
+        $file->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT);
+
+        return $this->_send($file);
+    }
+
+    /**
+     * @return Response|null
+     */
+    private function _preview()
+    {
+        $thumbFile = request('preview');
+        $file      = base_path($thumbFile);
+        if(!$file || !is_file($file)) {
+            return abort(404);
+        }
+        preventJailBreak($file);
+
+        $file = new BinaryFileResponse($file);
+        $file->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
+
+        return $this->_send($file);
+    }
+
+    /**
      * Run the app
      *
      * @return Response
@@ -69,9 +108,17 @@ class FileManager
     {
         // look for thumb request
         if (request('thumb')) {
-            $response = $this->_sendThumb();
+            return $this->_sendThumb();
+        }
 
-            return $this->_send($response);
+        // look for download request
+        if(request('download')) {
+            return $this->_downloadFile();
+        }
+
+        // look for preview request
+        if(request('preview')) {
+            return  $this->_preview();
         }
 
         // secure the path
