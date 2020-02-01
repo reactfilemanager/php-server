@@ -131,6 +131,26 @@ class General
 
     /**
      * @return Response|null
+     */
+    public function chmod()
+    {
+        $target = sanitizePath(request_path().'/'.request('target'));
+        preventJailBreak($target);
+        if ( ! filesystem()->exists($target)) {
+            return jsonResponse(['message' => 'target does not exist'], 403);
+        }
+
+        $mode = request('mod');
+        $mode = str_pad($mode, 3, '0', STR_PAD_LEFT);
+        $mode = intval($mode);
+
+        filesystem()->chmod($target, octdec($mode));
+
+        return jsonResponse(['message' => 'File permission has been updated.']);
+    }
+
+    /**
+     * @return Response|null
      * @throws InvalidArgumentException
      */
     public function delete()
