@@ -297,6 +297,7 @@ function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
         'perms'         => getFilePerms($file->getRealPath()),
         'size'          => $file->getSize(),
         'extension'     => $file->getExtension(),
+        'last_modified' => $file->getMTime(),
     ];
 }
 
