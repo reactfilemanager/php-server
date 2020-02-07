@@ -95,10 +95,15 @@ class FileManager
         }
         preventJailBreak($file);
 
-        $file = new BinaryFileResponse($file);
-        $file->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
+        $file = new SplFileInfo($file);
 
-        return $this->_send($file);
+        $response = new BinaryFileResponse($file->getRealPath());
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
+        if($file->getExtension()==='svg') {
+            $response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
+        }
+
+        return $this->_send($response);
     }
 
     /**
