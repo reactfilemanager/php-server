@@ -369,7 +369,10 @@ function getThumb($path)
     } elseif ($file->isLink()) {
         $thumb = $thumbDir.'symlink'.$thumbExt;
     } else {
-        if (in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
+        if($ext === 'svg') {
+            return $file;
+        }
+        elseif (in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
             $thumbImage = cache()->get(md5_file($file->getRealPath()), function (ItemInterface $_) use ($file) {
 
                 return genThumb($file);
