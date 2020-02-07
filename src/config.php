@@ -5,7 +5,7 @@ return [
     'cache'   => __DIR__.'/../tmp/.cache/',
     'uploads' => [
         'allowed_types' => [
-            'image/jpeg', 'image/png', 'image/gif', 'image/bmp',
+            'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/svg+xml', 'image/svg'
         ]
     ]
 ];
