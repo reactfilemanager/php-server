@@ -44,6 +44,9 @@ class FileManager
         }
 
         $response = new BinaryFileResponse($thumb->getRealPath());
+        if($thumb->getExtension()==='svg') {
+            $response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
+        }
 
         return $this->_send($response);
     }
