@@ -296,7 +296,7 @@ function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
         'is_executable' => $file->isExecutable(),
         'perms'         => getFilePerms($file->getRealPath()),
         'size'          => $file->getSize(),
-        'extension'     => $file->getExtension(),
+        'extension'     => strtolower($file->getExtension()),
         'last_modified' => $file->getMTime(),
     ];
 }
@@ -362,7 +362,7 @@ function getThumb($path)
 
     $file  = new SplFileInfo($path);
     $thumb = null;
-    $ext   = $file->getExtension();
+    $ext   = strtolower($file->getExtension());
 
     if ($file->isDir()) {
         $thumb = $thumbDir.'folder'.$thumbExt;
@@ -410,7 +410,7 @@ function deleteThumb($filepath)
  */
 function genThumb(SplFileInfo $file)
 {
-    $ext = $file->getExtension();
+    $ext = strtolower($file->getExtension());
 
     $path     = $file->getRealPath();
     $resource = null;
