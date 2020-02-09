@@ -1,5 +1,6 @@
 <?php
 
+use Rocky\FileManager\FileManager;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
@@ -179,13 +180,38 @@ function config($path, $value = null)
 {
     global $container;
     if ( ! isset($container['config'])) {
-        $container['config'] = include __DIR__.'/config.php';
+        $container['config'] = deepMerge(include __DIR__.'/config.php', FileManager::$CONFIG);
     }
     if ( ! $value) {
         return getConfig($path);
     } else {
         return setConfig($path, $value);
     }
+}
+
+/**
+ * @param $array1
+ * @param $array2
+ *
+ * @return mixed
+ */
+function deepMerge($array1, $array2)
+{
+    foreach ($array2 as $key => $value) {
+        if ( ! isset($array1[$key])) {
+            $array1[$key] = $value;
+            continue;
+        }
+
+        $_value = $array1[$key];
+        if (gettype($_value) !== 'array') {
+            $array1[$key] = $value;
+        } else {
+            $array1[$key] = deepMerge($_value, $value);
+        }
+    }
+
+    return $array1;
 }
 
 /**
@@ -369,10 +395,9 @@ function getThumb($path)
     } elseif ($file->isLink()) {
         $thumb = $thumbDir.'symlink'.$thumbExt;
     } else {
-        if($ext === 'svg') {
+        if ($ext === 'svg') {
             return $file;
-        }
-        elseif (in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
+        } elseif (in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
             $thumbImage = cache()->get(md5_file($file->getRealPath()), function (ItemInterface $_) use ($file) {
 
                 return genThumb($file);

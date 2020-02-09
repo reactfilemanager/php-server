@@ -1,6 +1,7 @@
 <?php
 
 $dir = __DIR__;
+echo "Changing dir to: {$dir}".PHP_EOL;
 $cmd = "cd {$dir} && php -S 127.0.0.1:8000";
 
 $proc = popen($cmd, 'r');

@@ -3,52 +3,25 @@
 namespace Rocky\FileManager;
 
 use Psr\Cache\InvalidArgumentException;
-use SplFileInfo;
 use Symfony\Component\ErrorHandler\Debug;
 use Symfony\Component\ErrorHandler\ErrorHandler;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class FileManager
 {
+    public static $CONFIG = [];
+
     /**
      * FileManager constructor.
      * Enable the error handler
+     *
+     * @param  array  $config
      */
-    public function __construct()
+    public function __construct($config = [])
     {
+        static::$CONFIG = $config;
         Debug::enable();
         ErrorHandler::register();
-    }
-
-    /**
-     * @return Response
-     * @throws InvalidArgumentException
-     */
-    private function _sendThumb()
-    {
-        $thumbFile = request('thumb');
-        $file      = base_path($thumbFile);
-
-        $thumb     = null;
-        if ( ! $file) {
-            $thumb = new SplFileInfo(__DIR__.'/thumbs/404.png');
-        } else {
-            preventJailBreak($file);
-
-            $thumb = getThumb($file);
-            if ( ! $thumb) {
-                $thumb = new SplFileInfo(__DIR__.'/thumbs/file.png');
-            }
-        }
-
-        $response = new BinaryFileResponse($thumb->getRealPath());
-        if($thumb->getExtension()==='svg') {
-            $response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
-        }
-
-        return $this->_send($response);
     }
 
     /**
@@ -64,49 +37,6 @@ class FileManager
     }
 
     /**
-     * Download a file
-     *
-     * @return Response|null
-     */
-    private function _downloadFile()
-    {
-        $thumbFile = request('download');
-        $file      = base_path($thumbFile);
-        if(!$file || !is_file($file)) {
-            return abort(404);
-        }
-        preventJailBreak($file);
-
-        $file = new BinaryFileResponse($file);
-        $file->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT);
-
-        return $this->_send($file);
-    }
-
-    /**
-     * @return Response|null
-     */
-    private function _preview()
-    {
-        $thumbFile = request('preview');
-        $file      = base_path($thumbFile);
-        if(!$file || !is_file($file)) {
-            return abort(404);
-        }
-        preventJailBreak($file);
-
-        $file = new SplFileInfo($file);
-
-        $response = new BinaryFileResponse($file->getRealPath());
-        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
-        if($file->getExtension()==='svg') {
-            $response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
-        }
-
-        return $this->_send($response);
-    }
-
-    /**
      * Run the app
      *
      * @return Response
@@ -116,33 +46,34 @@ class FileManager
     {
         // look for thumb request
         if (request('thumb')) {
-            return $this->_sendThumb();
+            return $this->_send(FileLoader::getThumb());
         }
 
         // look for download request
-        if(request('download')) {
-            return $this->_downloadFile();
+        if (request('download')) {
+            return $this->_send(FileLoader::downloadFile());
         }
 
         // look for preview request
-        if(request('preview')) {
-            return  $this->_preview();
+        if (request('preview')) {
+            return $this->_send(FileLoader::getPreview());
         }
 
         // secure the path
         preventJailBreak();
 
         // look up the requested plugin and it's action(method)
-        $plugin = request('plugin');
-        $action = request('action');
-        if ( ! filesystem()->exists(__DIR__.'/Plugins/'.$plugin.'.php')) {
+        $plugin  = request('plugin');
+        $action  = request('action');
+        $plugins = config('plugins');
+        if ( ! array_key_exists($plugin, $plugins)) {
             // plugin does not exist
             $response = response()->setStatusCode(403);
 
             return $this->_send($response);
         }
 
-        $class = '\Rocky\FileManager\Plugins\\'.$plugin;
+        $class = $plugins[$plugin];
         if ( ! class_exists($class)) {
             // class not found
             $response = response()->setStatusCode(403);
