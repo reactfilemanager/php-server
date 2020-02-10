@@ -330,13 +330,15 @@ function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
         $mime = mimeTypes()->guessMimeType($file->getRealPath());
         if (preg_match('#^image/#', $mime)) {
             $dimension          = getimagesize($file->getRealPath());
-            $info['image_info'] = [
-                'width'    => $dimension['0'],
-                'height'   => $dimension['1'],
-                'bits'     => $dimension['bits'],
-                'channels' => $dimension['channels'],
-                'mime'     => $dimension['mime'],
-            ];
+            if($info) {
+                $info['image_info'] = [
+                    'width'    => $dimension['0'],
+                    'height'   => $dimension['1'],
+                    'bits'     => @$dimension['bits'],
+                    'channels' => @$dimension['channels'],
+                    'mime'     => $dimension['mime'],
+                ];
+            }
         }
     }
 
