@@ -311,7 +311,7 @@ function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
 {
     $path = request('path');
 
-    return [
+    $info = [
         'name'          => $file->getFilename(),
         'path'          => sanitizePath($path.'/'.$file->getRelativePathname()),
         'is_dir'        => $file->isDir(),
@@ -325,6 +325,22 @@ function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
         'extension'     => strtolower($file->getExtension()),
         'last_modified' => $file->getMTime(),
     ];
+
+    if ($file->isFile()) {
+        $mime = mimeTypes()->guessMimeType($file->getRealPath());
+        if (preg_match('#^image/#', $mime)) {
+            $dimension          = getimagesize($file->getRealPath());
+            $info['image_info'] = [
+                'width'    => $dimension['0'],
+                'height'   => $dimension['1'],
+                'bits'     => $dimension['bits'],
+                'channels' => $dimension['channels'],
+                'mime'     => $dimension['mime'],
+            ];
+        }
+    }
+
+    return $info;
 }
 
 /**
