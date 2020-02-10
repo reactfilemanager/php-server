@@ -369,7 +369,7 @@ function ensureSafeFile($filepath)
     if ( ! $valid) {
         filesystem()->remove($filepath);
 
-        abort(403, ['message' => 'This type of file is not allowed to be downloaded or uploaded']);
+        abort(403, ['message' => 'File type not allowed']);
     }
 
     return $mime;
