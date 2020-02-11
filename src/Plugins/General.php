@@ -285,8 +285,30 @@ class General
     public function upload()
     {
         /** @var UploadedFile $file */
-        $file = request()->files->get('file');
-        $file->move(request_path(), $file->getClientOriginalName());
+        $file     = request()->files->get('file');
+        $filename = absolutePath(request_path(), $file->getClientOriginalName());
+        if ($filename) {
+            $option = request('option');
+            if ($option === 'replace') {
+                // replace the existing file
+                filesystem()->remove($filename);
+                $file->move(request_path(), $file->getClientOriginalName());
+            } elseif ($option === 'keep-both') {
+                // keep both files
+                // save the new file under new name
+                $_filename = pathinfo($filename, PATHINFO_FILENAME);
+                $_ext = pathinfo($filename, PATHINFO_EXTENSION);
+                $name = getSafePath($_filename, $_ext);
+                $file->move(request_path(), pathinfo($name, PATHINFO_BASENAME));
+            } else {
+                // send the message to confirm an option
+                // acceptable options [keep-both, replace]
+                return jsonResponse(['message' => 'File exists'], 412);
+            }
+        } else {
+            // no existing file, move it
+            $file->move(request_path(), $file->getClientOriginalName());
+        }
 
         $filepath = absolutePath(request_path(), $file->getClientOriginalName());
 
