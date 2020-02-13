@@ -281,6 +281,7 @@ class General
 
     /**
      * @return Response|null
+     * @throws InvalidArgumentException
      */
     public function upload()
     {
@@ -292,6 +293,7 @@ class General
             if ($option === 'replace') {
                 // replace the existing file
                 filesystem()->remove($filename);
+                deleteThumb($filename);
                 $file->move(request_path(), $file->getClientOriginalName());
             } elseif ($option === 'keep-both') {
                 // keep both files
