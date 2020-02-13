@@ -5,6 +5,6 @@ return [
     'cache'   => null,
     'uploads' => [],
     'plugins' => [
-        'General' => \Rocky\FileManager\Plugins\General::class,
+        'Core' => \Rocky\FileManager\Plugins\Core::class,
     ]
 ];
