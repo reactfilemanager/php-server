@@ -329,8 +329,8 @@ function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
     if ($file->isFile()) {
         $mime = mimeTypes()->guessMimeType($file->getRealPath());
         if (preg_match('#^image/#', $mime)) {
-            $dimension          = getimagesize($file->getRealPath());
-            if($info) {
+            $dimension = getimagesize($file->getRealPath());
+            if ($info) {
                 $info['image_info'] = [
                     'width'    => $dimension['0'],
                     'height'   => $dimension['1'],
@@ -375,19 +375,21 @@ function getSafePath($name, $ext = '')
  */
 function ensureSafeFile($filepath)
 {
-    $mime  = mimeTypes()->guessMimeType($filepath);
-    $valid = false;
-    foreach (config('uploads.allowed_types') as $allowed_type) {
-        if (preg_match("#^{$allowed_type}$#", $mime)) {
-            $valid = true;
-            break;
+    $mime = mimeTypes()->guessMimeType($filepath);
+    if (config('uploads.mime_check')) {
+        $valid = false;
+        foreach (config('uploads.allowed_types') as $allowed_type) {
+            if (preg_match("#^{$allowed_type}$#", $mime)) {
+                $valid = true;
+                break;
+            }
         }
-    }
 
-    if ( ! $valid) {
-        filesystem()->remove($filepath);
+        if ( ! $valid) {
+            filesystem()->remove($filepath);
 
-        abort(403, ['message' => 'File type not allowed']);
+            abort(403, ['message' => 'File type not allowed']);
+        }
     }
 
     return $mime;

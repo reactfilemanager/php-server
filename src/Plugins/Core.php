@@ -286,21 +286,33 @@ class Core
     public function upload()
     {
         /** @var UploadedFile $file */
-        $file     = request()->files->get('file');
+        $file = request()->files->get('file');
+
+        // ensure if the file is allowed to be uploaded
+        ensureSafeFile($file->getRealPath());
+
+        $max_upload_size = config('uploads.max_upload_size');
+
+        if ($max_upload_size) {
+            if ($max_upload_size * 1024 < $file->getSize()) {
+                abort(406, ['message' => 'File size must be less than '.$max_upload_size.'MB']);
+            }
+        }
+
         $filename = absolutePath(request_path(), $file->getClientOriginalName());
         if ($filename) {
             $option = request('option');
             if ($option === 'replace') {
                 // replace the existing file
-                filesystem()->remove($filename);
                 deleteThumb($filename);
+                filesystem()->remove($filename);
                 $file->move(request_path(), $file->getClientOriginalName());
             } elseif ($option === 'keep-both') {
                 // keep both files
                 // save the new file under new name
                 $_filename = pathinfo($filename, PATHINFO_FILENAME);
-                $_ext = pathinfo($filename, PATHINFO_EXTENSION);
-                $name = getSafePath($_filename, $_ext);
+                $_ext      = pathinfo($filename, PATHINFO_EXTENSION);
+                $name      = getSafePath($_filename, $_ext);
                 $file->move(request_path(), pathinfo($name, PATHINFO_BASENAME));
             } else {
                 // send the message to confirm an option
@@ -315,8 +327,6 @@ class Core
         $filepath = absolutePath(request_path(), $file->getClientOriginalName());
 
         if (filesystem()->exists($filepath)) {
-            ensureSafeFile($filepath);
-
             return jsonResponse(['message' => 'File upload successful']);
         }
 

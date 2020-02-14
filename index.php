@@ -15,7 +15,9 @@ try {
         'root'    => __DIR__.'/tmp/storage/',
         'cache'   => __DIR__.'/tmp/.cache/',
         'uploads' => [
-            'allowed_types' => [
+            'max_upload_size' => 0,
+            'mime_check'      => true,
+            'allowed_types'   => [
                 'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/svg\+xml', 'image/svg'
             ]
         ]
