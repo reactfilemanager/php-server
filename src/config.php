@@ -9,6 +9,6 @@ return [
         'allowed_types' => [],
     ],
     'plugins' => [
-        'Core' => \Rocky\FileManager\Plugins\Core::class,
+        'core' => \Rocky\FileManager\Plugins\Core::class,
     ]
 ];
