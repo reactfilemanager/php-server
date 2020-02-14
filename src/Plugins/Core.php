@@ -294,7 +294,7 @@ class Core
         $max_upload_size = config('uploads.max_upload_size');
 
         if ($max_upload_size) {
-            if ($max_upload_size * 1024 < $file->getSize()) {
+            if ($max_upload_size * 1048576 < $file->getSize()) {
                 abort(406, ['message' => 'File size must be less than '.$max_upload_size.'MB']);
             }
         }
