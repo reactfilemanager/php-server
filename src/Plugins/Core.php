@@ -101,6 +101,9 @@ class Core
         }
         $to = sanitizePath(request_path().'/'.request('to'));
         preventJailBreak($to);
+        if(filesystem()->exists($to)) {
+            return jsonResponse(['message' => 'A file/folder with the same name exists'], 406);
+        }
 
         filesystem()->rename($from, $to);
 
