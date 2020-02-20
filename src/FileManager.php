@@ -20,8 +20,30 @@ class FileManager
     public function __construct($config = [])
     {
         static::$CONFIG = $config;
+        $this->_init();
+    }
+
+    /**
+     *
+     */
+    private function _init()
+    {
         Debug::enable();
         ErrorHandler::register();
+        $this->_initPlugins();
+    }
+
+    /**
+     *
+     */
+    private function _initPlugins()
+    {
+        $plugins = config('plugins');
+        foreach ($plugins as $plugin) {
+            if (method_exists($plugin, 'init')) {
+                $plugin::init();
+            }
+        }
     }
 
     /**

@@ -10,5 +10,6 @@ return [
     ],
     'plugins' => [
         'core' => \Rocky\FileManager\Plugins\Core::class,
+        'pjpeg' => \Rocky\FileManager\Plugins\ProgressiveJPEG::class,
     ]
 ];

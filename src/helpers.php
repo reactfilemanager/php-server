@@ -10,6 +10,64 @@ use Symfony\Component\Mime\MimeTypes;
 use Symfony\Contracts\Cache\ItemInterface;
 
 $container = [];
+$actions   = [];
+$filters   = [];
+
+/**
+ * @param $hook
+ * @param $callable
+ */
+function add_action($hook, $callable)
+{
+    global $actions;
+    if ( ! isset($actions[$hook])) {
+        $actions[$hook] = [];
+    }
+    $actions[$hook][] = $callable;
+}
+
+/**
+ * @param $hook
+ * @param $value
+ *
+ * @return mixed
+ */
+function do_action($hook, $value)
+{
+    global $actions;
+
+    return array_reduce($actions[$hook], function ($value, $action) {
+        return $action($value);
+    }, $value);
+}
+
+/**
+ * @param $hook
+ * @param $callable
+ */
+function add_filter($hook, $callable)
+{
+    global $filters;
+    if ( ! isset($filters[$hook])) {
+        $filters[$hook] = [];
+    }
+    $filters[$hook][] = $callable;
+}
+
+/**
+ * @param $hook
+ * @param $value
+ *
+ * @return mixed
+ */
+function apply_filter($hook, $value)
+{
+    global $filters;
+
+    return array_reduce($filters[$hook], function ($value, $filter) {
+        return $filter($value);
+    }, $value);
+}
 
 /**
  * @param  string  $path
@@ -324,6 +382,7 @@ function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
         'size'          => $file->getSize(),
         'extension'     => strtolower($file->getExtension()),
         'last_modified' => $file->getMTime(),
+        'extra'         => [],
     ];
 
     if ($file->isFile()) {
@@ -479,7 +538,8 @@ function genThumb(SplFileInfo $file)
     imagefill($virtual_image, 0, 0, $trans_colour);
     imagecopyresized($virtual_image, $resource, 0, 0, 0, 0, $desired_width, $desired_height, $width, $height);
     ob_start();
-    imagepng($virtual_image);
+    imageinterlace($virtual_image, true);
+    imagejpeg($virtual_image, null, 100);
     $thumbImage = ob_get_contents();
     ob_end_clean();
 

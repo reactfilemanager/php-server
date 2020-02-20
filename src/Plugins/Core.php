@@ -29,8 +29,9 @@ class Core
         foreach ($files as $file) {
             $list['files'][] = getFileInfo($file);
         }
+        $filtered_list = apply_filter('core@list', $list);
 
-        return jsonResponse($list);
+        return jsonResponse($filtered_list);
     }
 
     /**
@@ -101,7 +102,7 @@ class Core
         }
         $to = sanitizePath(request_path().'/'.request('to'));
         preventJailBreak($to);
-        if(filesystem()->exists($to)) {
+        if (filesystem()->exists($to)) {
             return jsonResponse(['message' => 'A file/folder with the same name exists'], 406);
         }
 
