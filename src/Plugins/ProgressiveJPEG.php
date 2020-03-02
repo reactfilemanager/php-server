@@ -36,11 +36,15 @@ class ProgressiveJPEG
      */
     private static function isInterlaced($filename)
     {
-        $handle   = fopen($filename, "r");
-        $contents = fread($handle, 32);
-        fclose($handle);
+        try {
+            $handle   = fopen($filename, "r");
+            $contents = fread($handle, 32);
+            fclose($handle);
 
-        return (ord($contents[28]) != 0);
+            return (ord($contents[28]) != 0);
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     /**
