@@ -305,7 +305,7 @@ class Core
 
         $filename = absolutePath(request_path(), $file->getClientOriginalName());
         if ($filename) {
-            $option = request('option');
+            $option = request('fm_option');
             if ($option === 'replace') {
                 // replace the existing file
                 deleteThumb($filename);
