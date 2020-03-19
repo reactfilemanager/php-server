@@ -1,5 +1,4 @@
 <?php
-namespace ThemeXpert\FileManager;
 
 use ThemeXpert\FileManager\FileManager;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
@@ -18,7 +17,7 @@ $filters   = [];
  * @param $hook
  * @param $callable
  */
-function add_action($hook, $callable)
+function fm_add_action($hook, $callable)
 {
     global $actions;
     if ( ! isset($actions[$hook])) {
@@ -33,7 +32,7 @@ function add_action($hook, $callable)
  *
  * @return mixed
  */
-function do_action($hook, $value)
+function fm_do_action($hook, $value)
 {
     global $actions;
 
@@ -46,7 +45,7 @@ function do_action($hook, $value)
  * @param $hook
  * @param $callable
  */
-function add_filter($hook, $callable)
+function fm_add_filter($hook, $callable)
 {
     global $filters;
     if ( ! isset($filters[$hook])) {
@@ -61,7 +60,7 @@ function add_filter($hook, $callable)
  *
  * @return mixed
  */
-function apply_filter($hook, $value)
+function fm_apply_filter($hook, $value)
 {
     global $filters;
 
@@ -75,17 +74,17 @@ function apply_filter($hook, $value)
  *
  * @return string
  */
-function base_path($path = null)
+function fm_base_path($path = null)
 {
-    return absolutePath(config('root'), $path);
+    return fm_absolutePath(fm_config('root'), $path);
 }
 
 /**
  * @return string
  */
-function request_path()
+function fm_request_path()
 {
-    return base_path(request('path'));
+    return fm_base_path(fm_request('path'));
 }
 
 /**
@@ -93,9 +92,9 @@ function request_path()
  *
  * @return false|string
  */
-function absolutePath(...$parts)
+function fm_absolutePath(...$parts)
 {
-    return realpath(sanitizePath(implode(DIRECTORY_SEPARATOR, $parts)));
+    return realpath(fm_sanitizePath(implode(DIRECTORY_SEPARATOR, $parts)));
 }
 
 /**
@@ -103,7 +102,7 @@ function absolutePath(...$parts)
  *
  * @return string|string[]|null
  */
-function sanitizePath($path)
+function fm_sanitizePath($path)
 {
     return preg_replace('(/+)', '/', $path);
 }
@@ -111,21 +110,21 @@ function sanitizePath($path)
 /**
  * @param  string  $path
  */
-function preventJailBreak($path = null)
+function fm_preventJailBreak($path = null)
 {
     if ($path === false) {
         return;
     }
 
-    $path = $path ? $path : base_path(request('path'));
+    $path = $path ? $path : fm_base_path(fm_request('path'));
     if ( ! $path) {
-        abort(403, ['message' => 'Invalid request']);
+        fm_abort(403, ['message' => 'Invalid fm_request']);
     }
 
-    $root = realpath(config('root'));
+    $root = realpath(fm_config('root'));
     // the path MUST start with the root
-    if ( ! startsWith($path, $root)) {
-        abort(403, ['message' => 'Jailbreak detected']);
+    if ( ! fm_startsWith($path, $root)) {
+        fm_abort(403, ['message' => 'Jailbreak detected']);
     }
 }
 
@@ -134,18 +133,18 @@ function preventJailBreak($path = null)
  *
  * @return Request|mixed
  */
-function request($key = null)
+function fm_request($key = null)
 {
     global $container;
-    if ( ! isset($container['request'])) {
-        $container['request'] = Request::createFromGlobals();
+    if ( ! isset($container['fm_request'])) {
+        $container['fm_request'] = Request::createFromGlobals();
     }
 
     if ($key !== null) {
-        return $container['request']->get($key);
+        return $container['fm_request']->get($key);
     }
 
-    return $container['request'];
+    return $container['fm_request'];
 }
 
 /**
@@ -153,17 +152,17 @@ function request($key = null)
  *
  * @return Response|null
  */
-function response($flush = false)
+function fm_response($flush = false)
 {
     global $container;
-    if ( ! isset($container['response'])) {
+    if ( ! isset($container['fm_response'])) {
         if ($flush) {
             return null;
         }
-        $container['response'] = new Response();
+        $container['fm_response'] = new Response();
     }
 
-    return $container['response'];
+    return $container['fm_response'];
 }
 
 /**
@@ -173,19 +172,19 @@ function response($flush = false)
  *
  * @return Response|null
  */
-function jsonResponse($array, $code = 200)
+function fm_jsonResponse($array, $code = 200)
 {
-    $response = response()->setStatusCode($code);
-    $response->setContent(json_encode($array));
-    $response->headers->set('Content-Type', 'application/json');
+    $fm_response = fm_response()->setStatusCode($code);
+    $fm_response->setContent(json_encode($array));
+    $fm_response->headers->set('Content-Type', 'application/json');
 
-    return $response;
+    return $fm_response;
 }
 
 /**
  * @return MimeTypes
  */
-function mimeTypes()
+function fm_mimeTypes()
 {
     global $container;
     if ( ! isset($container['mime_types'])) {
@@ -198,7 +197,7 @@ function mimeTypes()
 /**
  * @return Finder
  */
-function finder()
+function fm_finder()
 {
     return new Finder();
 }
@@ -206,27 +205,27 @@ function finder()
 /**
  * @return Filesystem
  */
-function filesystem()
+function fm_filesystem()
 {
     global $container;
-    if ( ! isset($container['filesystem'])) {
-        $container['filesystem'] = new Filesystem();
+    if ( ! isset($container['fm_filesystem'])) {
+        $container['fm_filesystem'] = new Filesystem();
     }
 
-    return $container['filesystem'];
+    return $container['fm_filesystem'];
 }
 
 /**
  * @return FilesystemAdapter
  */
-function cache()
+function fm_cache()
 {
     global $container;
-    if ( ! isset($container['cache'])) {
-        $container['cache'] = new FilesystemAdapter('_thumb_cache', 0, config('cache'));
+    if ( ! isset($container['fm_cache'])) {
+        $container['fm_cache'] = new FilesystemAdapter('_thumb_fm_cache', 0, fm_config('fm_cache'));
     }
 
-    return $container['cache'];
+    return $container['fm_cache'];
 }
 
 /**
@@ -235,16 +234,16 @@ function cache()
  *
  * @return mixed|null
  */
-function config($path, $value = null)
+function fm_config($path, $value = null)
 {
     global $container;
-    if ( ! isset($container['config'])) {
-        $container['config'] = deepMerge(include __DIR__.'/config.php', FileManager::$CONFIG);
+    if ( ! isset($container['fm_config'])) {
+        $container['fm_config'] = fm_deepMerge(include __DIR__.'/config.php', FileManager::$CONFIG);
     }
     if ( ! $value) {
-        return getConfig($path);
+        return fm_getConfig($path);
     } else {
-        return setConfig($path, $value);
+        return fm_setConfig($path, $value);
     }
 }
 
@@ -254,7 +253,7 @@ function config($path, $value = null)
  *
  * @return mixed
  */
-function deepMerge($array1, $array2)
+function fm_deepMerge($array1, $array2)
 {
     foreach ($array2 as $key => $value) {
         if ( ! isset($array1[$key])) {
@@ -266,7 +265,7 @@ function deepMerge($array1, $array2)
         if (gettype($_value) !== 'array') {
             $array1[$key] = $value;
         } else {
-            $array1[$key] = deepMerge($_value, $value);
+            $array1[$key] = fm_deepMerge($_value, $value);
         }
     }
 
@@ -278,10 +277,10 @@ function deepMerge($array1, $array2)
  *
  * @return null
  */
-function getConfig($path)
+function fm_getConfig($path)
 {
     global $container;
-    $cf    = $container['config'];
+    $cf    = $container['fm_config'];
     $_path = explode('.', $path);
     foreach ($_path as $_p) {
         if (isset($cf[$_p])) {
@@ -300,10 +299,10 @@ function getConfig($path)
  *
  * @return bool
  */
-function setConfig($path, $value)
+function fm_setConfig($path, $value)
 {
     global $container;
-    $cf    = &$container['config'];
+    $cf    = &$container['fm_config'];
     $_path = explode('.', $path);
     $last  = array_pop($_path);
     foreach ($_path as $_p) {
@@ -324,7 +323,7 @@ function setConfig($path, $value)
  *
  * @return bool
  */
-function startsWith($haystack, $needle)
+function fm_startsWith($haystack, $needle)
 {
     $length = strlen($needle);
 
@@ -337,7 +336,7 @@ function startsWith($haystack, $needle)
  *
  * @return bool
  */
-function endsWith($haystack, $needle)
+function fm_endsWith($haystack, $needle)
 {
     $length = strlen($needle);
     if ($length == 0) {
@@ -353,11 +352,11 @@ function endsWith($haystack, $needle)
  *
  * @return null
  */
-function abort($code, $data = ['message' => 'Aborted'])
+function fm_abort($code, $data = ['message' => 'Aborted'])
 {
-    $response = jsonResponse($data);
-    $response->setStatusCode($code);
-    $response->prepare(request())->send();
+    $fm_response = fm_jsonResponse($data);
+    $fm_response->setStatusCode($code);
+    $fm_response->prepare(fm_request())->send();
     die;
 }
 
@@ -366,20 +365,20 @@ function abort($code, $data = ['message' => 'Aborted'])
  *
  * @return array
  */
-function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
+function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
 {
-    $path = request('path');
+    $path = fm_request('path');
 
     $info = [
         'name'          => $file->getFilename(),
-        'path'          => sanitizePath($path.'/'.$file->getRelativePathname()),
+        'path'          => fm_sanitizePath($path.'/'.$file->getRelativePathname()),
         'is_dir'        => $file->isDir(),
         'is_file'       => $file->isFile(),
         'is_link'       => $file->isLink(),
         'is_readable'   => $file->isReadable(),
         'is_writable'   => $file->isWritable(),
         'is_executable' => $file->isExecutable(),
-        'perms'         => getFilePerms($file->getRealPath()),
+        'perms'         => fm_getFilePerms($file->getRealPath()),
         'size'          => $file->getSize(),
         'extension'     => strtolower($file->getExtension()),
         'last_modified' => $file->getMTime(),
@@ -387,7 +386,7 @@ function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
     ];
 
     if ($file->isFile()) {
-        $mime = mimeTypes()->guessMimeType($file->getRealPath());
+        $mime = fm_mimeTypes()->guessMimeType($file->getRealPath());
         if (preg_match('#^image/#', $mime)) {
             $dimension = getimagesize($file->getRealPath());
             if ($info) {
@@ -411,15 +410,15 @@ function getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
  *
  * @return string|string[]|null
  */
-function getSafePath($name, $ext = '')
+function fm_getSafePath($name, $ext = '')
 {
-    $filepath = sanitizePath(request_path().'/'.$name);
+    $filepath = fm_sanitizePath(fm_request_path().'/'.$name);
     if ($ext !== '') {
         $filepath .= '.'.$ext;
     }
     $i = 1;
-    while (filesystem()->exists($filepath)) {
-        $filepath = sanitizePath(request_path().'/'.$name.'('.($i++).')');
+    while (fm_filesystem()->exists($filepath)) {
+        $filepath = fm_sanitizePath(fm_request_path().'/'.$name.'('.($i++).')');
         if ($ext !== '') {
             $filepath .= '.'.$ext;
         }
@@ -433,12 +432,12 @@ function getSafePath($name, $ext = '')
  *
  * @return string|Response|null
  */
-function ensureSafeFile($filepath)
+function fm_ensureSafeFile($filepath)
 {
-    $mime = mimeTypes()->guessMimeType($filepath);
-    if (config('uploads.mime_check')) {
+    $mime = fm_mimeTypes()->guessMimeType($filepath);
+    if (fm_config('uploads.mime_check')) {
         $valid = false;
-        foreach (config('uploads.allowed_types') as $allowed_type) {
+        foreach (fm_config('uploads.allowed_types') as $allowed_type) {
             if (preg_match("#^{$allowed_type}$#", $mime)) {
                 $valid = true;
                 break;
@@ -446,9 +445,9 @@ function ensureSafeFile($filepath)
         }
 
         if ( ! $valid) {
-            filesystem()->remove($filepath);
+            fm_filesystem()->remove($filepath);
 
-            abort(403, ['message' => 'File type not allowed']);
+            fm_abort(403, ['message' => 'File type not allowed']);
         }
     }
 
@@ -461,7 +460,7 @@ function ensureSafeFile($filepath)
  * @return string|false
  * @throws \Psr\Cache\InvalidArgumentException
  */
-function getThumb($path)
+function fm_getThumb($path)
 {
     $thumbDir = __DIR__.'/thumbs/';
     $thumbExt = '.png';
@@ -478,9 +477,9 @@ function getThumb($path)
         if ($ext === 'svg') {
             return $file;
         } elseif (in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
-            $thumbImage = cache()->get(md5_file($file->getRealPath()), function (ItemInterface $_) use ($file) {
+            $thumbImage = fm_cache()->get(md5_file($file->getRealPath()), function (ItemInterface $_) use ($file) {
 
-                return genThumb($file);
+                return fm_genThumb($file);
             });
 
             $thumb = tempnam("/tmp", $file->getFilename());
@@ -488,7 +487,7 @@ function getThumb($path)
             $handle = fopen($thumb, "w");
             fwrite($handle, $thumbImage);
             fclose($handle);
-        } elseif (filesystem()->exists($thumbDir.$ext.$thumbExt)) {
+        } elseif (fm_filesystem()->exists($thumbDir.$ext.$thumbExt)) {
             $thumb = $thumbDir.$ext.$thumbExt;
         } else {
             return null;
@@ -503,9 +502,9 @@ function getThumb($path)
  *
  * @throws \Psr\Cache\InvalidArgumentException
  */
-function deleteThumb($filepath)
+function fm_deleteThumb($filepath)
 {
-    cache()->delete(md5_file($filepath));
+    fm_cache()->delete(md5_file($filepath));
 }
 
 /**
@@ -513,7 +512,7 @@ function deleteThumb($filepath)
  *
  * @return false|string
  */
-function genThumb(SplFileInfo $file)
+function fm_genThumb(SplFileInfo $file)
 {
     $ext = strtolower($file->getExtension());
 
@@ -554,7 +553,7 @@ function genThumb(SplFileInfo $file)
  *
  * @return string
  */
-function getFilePerms($file)
+function fm_getFilePerms($file)
 {
     $perms = fileperms($file);
 

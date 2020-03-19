@@ -12,13 +12,13 @@ class ProgressiveJPEG
      */
     public static function init()
     {
-        \ThemeXpert\FileManager\add_filter('core@list', function ($list) {
+        fm_add_filter('core@list', function ($list) {
             $list['files'] = array_map(function (array $file) {
                 $ext = $file['extension'];
                 if ($ext === 'jpg' || $ext === 'jpeg') {
                     $file['extra'] = array_merge(
                         $file['extra'],
-                        ['pjpeg' => static::isInterlaced(base_path($file['path']))]
+                        ['pjpeg' => static::isInterlaced(fm_base_path($file['path']))]
                     );
                 }
 
@@ -53,14 +53,14 @@ class ProgressiveJPEG
     public function convert()
     {
         try {
-            $filepath = absolutePath(request_path(), request('filepath'));
+            $filepath = fm_absolutePath(fm_request_path(), fm_request('filepath'));
             $im       = imagecreatefromjpeg($filepath);
             imageinterlace($im, true);
             imagejpeg($im, $filepath, 100);
 
-            return jsonResponse(['message' => 'Converted']);
+            return fm_jsonResponse(['message' => 'Converted']);
         } catch (Exception $e) {
-            return  jsonResponse($e->getMessage(), 500);
+            return  fm_jsonResponse($e->getMessage(), 500);
         }
     }
 }

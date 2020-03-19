@@ -14,8 +14,8 @@ class Core
      */
     public function list()
     {
-        $dirs  = finder()->depth(0)->directories()->in(request_path());
-        $files = finder()->depth(0)->files()->in(request_path());
+        $dirs  = fm_finder()->depth(0)->directories()->in(fm_request_path());
+        $files = fm_finder()->depth(0)->files()->in(fm_request_path());
 
         $list = [
             'dirs'  => [],
@@ -23,15 +23,15 @@ class Core
         ];
         /** @var SplFileInfo $dir */
         foreach ($dirs as $dir) {
-            $list['dirs'][] = getFileInfo($dir);
+            $list['dirs'][] = fm_getFileInfo($dir);
         }
         /** @var SplFileInfo $file */
         foreach ($files as $file) {
-            $list['files'][] = getFileInfo($file);
+            $list['files'][] = fm_getFileInfo($file);
         }
-        $filtered_list = apply_filter('core@list', $list);
+        $filtered_list = fm_apply_filter('core@list', $list);
 
-        return jsonResponse($filtered_list);
+        return fm_jsonResponse($filtered_list);
     }
 
     /**
@@ -39,19 +39,19 @@ class Core
      */
     public function new_dir()
     {
-        $new_path = sanitizePath(request_path().'/'.request('dirname'));
-        preventJailBreak($new_path);
+        $new_path = fm_sanitizePath(fm_request_path().'/'.fm_request('dirname'));
+        fm_preventJailBreak($new_path);
 
-        if (filesystem()->exists($new_path)) {
-            return jsonResponse(['message' => 'Directory exists'], 403);
+        if (fm_filesystem()->exists($new_path)) {
+            return fm_jsonResponse(['message' => 'Directory exists'], 403);
         }
 
-        filesystem()->mkdir($new_path);
-        if (filesystem()->exists($new_path)) {
-            return jsonResponse(['message' => 'Directory created']);
+        fm_filesystem()->mkdir($new_path);
+        if (fm_filesystem()->exists($new_path)) {
+            return fm_jsonResponse(['message' => 'Directory created']);
         }
 
-        return jsonResponse(['message' => 'Could not create new directory'], 500);
+        return fm_jsonResponse(['message' => 'Could not create new directory'], 500);
     }
 
     /**
@@ -59,18 +59,18 @@ class Core
      */
     public function new_file()
     {
-        $new_file = sanitizePath(request_path().'/'.request('filename'));
-        preventJailBreak($new_file);
+        $new_file = fm_sanitizePath(fm_request_path().'/'.fm_request('filename'));
+        fm_preventJailBreak($new_file);
 
-        if (filesystem()->exists($new_file)) {
-            return jsonResponse(['message' => 'File exists']);
+        if (fm_filesystem()->exists($new_file)) {
+            return fm_jsonResponse(['message' => 'File exists']);
         }
 
-        $content = request('content');
+        $content = fm_request('content');
 
-        filesystem()->appendToFile($new_file, $content);
+        fm_filesystem()->appendToFile($new_file, $content);
 
-        return jsonResponse(['message' => 'File saved.']);
+        return fm_jsonResponse(['message' => 'File saved.']);
     }
 
     /**
@@ -78,16 +78,16 @@ class Core
      */
     public function update()
     {
-        $filepath = absolutePath(request_path(), request('target'));
-        preventJailBreak($filepath);
+        $filepath = fm_absolutePath(fm_request_path(), fm_request('target'));
+        fm_preventJailBreak($filepath);
         if ( ! $filepath) {
-            return jsonResponse(['message' => 'Requested file does not exist'], 404);
+            return fm_jsonResponse(['message' => 'Requested file does not exist'], 404);
         }
 
-        $content = request('content');
-        filesystem()->dumpFile($filepath, $content);
+        $content = fm_request('content');
+        fm_filesystem()->dumpFile($filepath, $content);
 
-        return jsonResponse(['message' => 'File updated']);
+        return fm_jsonResponse(['message' => 'File updated']);
     }
 
     /**
@@ -95,24 +95,24 @@ class Core
      */
     public function rename()
     {
-        $from = absolutePath(request_path(), request('from'));
-        preventJailBreak($from);
+        $from = fm_absolutePath(fm_request_path(), fm_request('from'));
+        fm_preventJailBreak($from);
         if ( ! $from) {
-            return jsonResponse(['message' => 'File/folder does not exist'], 404);
+            return fm_jsonResponse(['message' => 'File/folder does not exist'], 404);
         }
-        $to = sanitizePath(request_path().'/'.request('to'));
-        preventJailBreak($to);
-        if (filesystem()->exists($to)) {
-            return jsonResponse(['message' => 'A file/folder with the same name exists'], 406);
-        }
-
-        filesystem()->rename($from, $to);
-
-        if ( ! filesystem()->exists($to)) {
-            return jsonResponse(['message' => 'Could not rename'], 500);
+        $to = fm_sanitizePath(fm_request_path().'/'.fm_request('to'));
+        fm_preventJailBreak($to);
+        if (fm_filesystem()->exists($to)) {
+            return fm_jsonResponse(['message' => 'A file/folder with the same name exists'], 406);
         }
 
-        return jsonResponse(['message' => 'Rename successful']);
+        fm_filesystem()->rename($from, $to);
+
+        if ( ! fm_filesystem()->exists($to)) {
+            return fm_jsonResponse(['message' => 'Could not rename'], 500);
+        }
+
+        return fm_jsonResponse(['message' => 'Rename successful']);
     }
 
     /**
@@ -138,19 +138,19 @@ class Core
      */
     public function chmod()
     {
-        $target = sanitizePath(request_path().'/'.request('target'));
-        preventJailBreak($target);
-        if ( ! filesystem()->exists($target)) {
-            return jsonResponse(['message' => 'target does not exist'], 403);
+        $target = fm_sanitizePath(fm_request_path().'/'.fm_request('target'));
+        fm_preventJailBreak($target);
+        if ( ! fm_filesystem()->exists($target)) {
+            return fm_jsonResponse(['message' => 'target does not exist'], 403);
         }
 
-        $mode = request('mod');
+        $mode = fm_request('mod');
         $mode = str_pad($mode, 3, '0', STR_PAD_LEFT);
         $mode = intval($mode);
 
-        filesystem()->chmod($target, octdec($mode));
+        fm_filesystem()->chmod($target, octdec($mode));
 
-        return jsonResponse(['message' => 'File permission has been updated.']);
+        return fm_jsonResponse(['message' => 'File permission has been updated.']);
     }
 
     /**
@@ -159,19 +159,19 @@ class Core
      */
     public function delete()
     {
-        $target = sanitizePath(request_path().'/'.request('target'));
-        preventJailBreak($target);
-        if ( ! filesystem()->exists($target)) {
-            return jsonResponse(['message' => 'target does not exist'], 403);
+        $target = fm_sanitizePath(fm_request_path().'/'.fm_request('target'));
+        fm_preventJailBreak($target);
+        if ( ! fm_filesystem()->exists($target)) {
+            return fm_jsonResponse(['message' => 'target does not exist'], 403);
         }
         if (is_file($target)) {
-            deleteThumb($target);
-            filesystem()->remove($target);
+            fm_deleteThumb($target);
+            fm_filesystem()->remove($target);
         } else {
             $this->recursive_delete($target);
         }
 
-        return jsonResponse(['message' => 'Delete successful.']);
+        return fm_jsonResponse(['message' => 'Delete successful.']);
     }
 
     /**
@@ -182,45 +182,45 @@ class Core
      */
     private function performCopyOperation($move = false)
     {
-        $source      = absolutePath(base_path().request('source'));
-        $destination = absolutePath(base_path().request('destination'));
+        $source      = fm_absolutePath(fm_base_path().fm_request('source'));
+        $destination = fm_absolutePath(fm_base_path().fm_request('destination'));
 
         if ( ! $source || ! $destination) {
-            return jsonResponse(['message' => 'Invalid request'], 403);
+            return fm_jsonResponse(['message' => 'Invalid fm_request'], 403);
         }
 
-        preventJailBreak($source);
-        preventJailBreak($destination);
+        fm_preventJailBreak($source);
+        fm_preventJailBreak($destination);
 
-        if ( ! filesystem()->exists($source)) {
-            return jsonResponse(['message' => 'Source does not exist'], 403);
+        if ( ! fm_filesystem()->exists($source)) {
+            return fm_jsonResponse(['message' => 'Source does not exist'], 403);
         }
 
         $_source      = new \SplFileInfo($source);
-        $_destination = sanitizePath($destination.'/'.$_source->getFilename());
+        $_destination = fm_sanitizePath($destination.'/'.$_source->getFilename());
 
-        if (filesystem()->exists($_destination)) {
-            return jsonResponse(['message' => 'Destination already exists'], 403);
+        if (fm_filesystem()->exists($_destination)) {
+            return fm_jsonResponse(['message' => 'Destination already exists'], 403);
         }
 
         if ($_source->isFile()) {
-            filesystem()->copy($source, $_destination);
-            if ($move && filesystem()->exists($_destination)) {
-                deleteThumb($source);
-                filesystem()->remove($source);
+            fm_filesystem()->copy($source, $_destination);
+            if ($move && fm_filesystem()->exists($_destination)) {
+                fm_deleteThumb($source);
+                fm_filesystem()->remove($source);
             }
         } else {
             $this->recursive_copy($source, $_destination);
-            if ($move && filesystem()->exists($_destination)) {
+            if ($move && fm_filesystem()->exists($_destination)) {
                 $this->recursive_delete($source);
             }
         }
 
-        if (filesystem()->exists($_destination)) {
-            return jsonResponse(['message' => $move ? 'Moved!' : 'Copied!']);
+        if (fm_filesystem()->exists($_destination)) {
+            return fm_jsonResponse(['message' => $move ? 'Moved!' : 'Copied!']);
         }
 
-        return jsonResponse(['message' => $move ? 'Could not move.' : 'Could not copy.'], 500);
+        return fm_jsonResponse(['message' => $move ? 'Could not move.' : 'Could not copy.'], 500);
     }
 
     /**
@@ -230,25 +230,25 @@ class Core
     private function recursive_copy($source, $destination)
     {
         $items = 0;
-        $files = finder()->files()->in($source);
+        $files = fm_finder()->files()->in($source);
         /** @var SplFileInfo $file */
         foreach ($files as $file) {
             $items++;
-            filesystem()->copy($file->getRealPath(), $destination.'/'.$file->getRelativePathname());
+            fm_filesystem()->copy($file->getRealPath(), $destination.'/'.$file->getRelativePathname());
         }
 
-        $dirs = finder()->directories()->in($source);
+        $dirs = fm_finder()->directories()->in($source);
         /** @var SplFileInfo $dir */
         foreach ($dirs as $dir) {
             $items++;
             $path = $destination.'/'.$dir->getRelativePathname();
-            if ( ! filesystem()->exists($path)) {
-                filesystem()->mkdir($path);
+            if ( ! fm_filesystem()->exists($path)) {
+                fm_filesystem()->mkdir($path);
             }
         }
 
         if ($items === 0) {
-            filesystem()->mkdir($destination);
+            fm_filesystem()->mkdir($destination);
         }
     }
 
@@ -260,14 +260,14 @@ class Core
      */
     private function recursive_delete($target)
     {
-        $files = finder()->files()->in($target);
+        $files = fm_finder()->files()->in($target);
         /** @var SplFileInfo $file */
         foreach ($files as $file) {
-            deleteThumb($file->getRealPath());
-            filesystem()->remove($file->getRealPath());
+            fm_deleteThumb($file->getRealPath());
+            fm_filesystem()->remove($file->getRealPath());
         }
 
-        $dirs  = finder()->directories()->in($target);
+        $dirs  = fm_finder()->directories()->in($target);
         $_dirs = [];
         /** @var SplFileInfo $dir */
         foreach ($dirs as $dir) {
@@ -275,12 +275,12 @@ class Core
         }
         $_dirs = array_reverse($_dirs);
         foreach ($_dirs as $dir) {
-            deleteThumb($dir);
-            filesystem()->remove($dir);
+            fm_deleteThumb($dir);
+            fm_filesystem()->remove($dir);
         }
 
-        deleteThumb($target);
-        filesystem()->remove($target);
+        fm_deleteThumb($target);
+        fm_filesystem()->remove($target);
     }
 
     /**
@@ -290,51 +290,51 @@ class Core
     public function upload()
     {
         /** @var UploadedFile $file */
-        $file = request()->files->get('file');
+        $file = fm_request()->files->get('file');
 
         // ensure if the file is allowed to be uploaded
-        ensureSafeFile($file->getRealPath());
+        fm_ensureSafeFile($file->getRealPath());
 
-        $max_upload_size = config('uploads.max_upload_size');
+        $max_upload_size = fm_config('uploads.max_upload_size');
 
         if ($max_upload_size) {
             if ($max_upload_size * 1048576 < $file->getSize()) {
-                abort(406, ['message' => 'File size must be less than '.$max_upload_size.'MB']);
+                fm_abort(406, ['message' => 'File size must be less than '.$max_upload_size.'MB']);
             }
         }
 
-        $filename = absolutePath(request_path(), $file->getClientOriginalName());
+        $filename = fm_absolutePath(fm_request_path(), $file->getClientOriginalName());
         if ($filename) {
-            $option = request('fm_option');
+            $option = fm_request('fm_option');
             if ($option === 'replace') {
                 // replace the existing file
-                deleteThumb($filename);
-                filesystem()->remove($filename);
-                $file->move(request_path(), $file->getClientOriginalName());
+                fm_deleteThumb($filename);
+                fm_filesystem()->remove($filename);
+                $file->move(fm_request_path(), $file->getClientOriginalName());
             } elseif ($option === 'keep-both') {
                 // keep both files
                 // save the new file under new name
                 $_filename = pathinfo($filename, PATHINFO_FILENAME);
                 $_ext      = pathinfo($filename, PATHINFO_EXTENSION);
-                $name      = getSafePath($_filename, $_ext);
-                $file->move(request_path(), pathinfo($name, PATHINFO_BASENAME));
+                $name      = fm_getSafePath($_filename, $_ext);
+                $file->move(fm_request_path(), pathinfo($name, PATHINFO_BASENAME));
             } else {
                 // send the message to confirm an option
                 // acceptable options [keep-both, replace]
-                return jsonResponse(['message' => 'File exists'], 412);
+                return fm_jsonResponse(['message' => 'File exists'], 412);
             }
         } else {
             // no existing file, move it
-            $file->move(request_path(), $file->getClientOriginalName());
+            $file->move(fm_request_path(), $file->getClientOriginalName());
         }
 
-        $filepath = absolutePath(request_path(), $file->getClientOriginalName());
+        $filepath = fm_absolutePath(fm_request_path(), $file->getClientOriginalName());
 
-        if (filesystem()->exists($filepath)) {
-            return jsonResponse(['message' => 'File upload successful']);
+        if (fm_filesystem()->exists($filepath)) {
+            return fm_jsonResponse(['message' => 'File upload successful']);
         }
 
-        return jsonResponse(['message' => 'Could not move uploaded file'], 500);
+        return fm_jsonResponse(['message' => 'Could not move uploaded file'], 500);
     }
 
     /**
@@ -342,25 +342,25 @@ class Core
      */
     public function remote_download()
     {
-        $url  = request('url');
+        $url  = fm_request('url');
         $name = pathinfo($url, PATHINFO_FILENAME);
         $ext  = pathinfo($url, PATHINFO_EXTENSION);
 
-        $filepath = getSafePath($name, $ext);
+        $filepath = fm_getSafePath($name, $ext);
 
-        filesystem()->copy($url, $filepath);
+        fm_filesystem()->copy($url, $filepath);
 
-        if ( ! filesystem()->exists($filepath)) {
-            return jsonResponse(['message' => 'Could not download remote file'], 500);
+        if ( ! fm_filesystem()->exists($filepath)) {
+            return fm_jsonResponse(['message' => 'Could not download remote file'], 500);
         }
 
-        $mime     = ensureSafeFile($filepath);
-        $ext      = mimeTypes()->getExtensions($mime)[0];
-        $new_path = getSafePath($name, $ext);
-        filesystem()->rename($filepath, $new_path);
+        $mime     = fm_ensureSafeFile($filepath);
+        $ext      = fm_mimeTypes()->getExtensions($mime)[0];
+        $new_path = fm_getSafePath($name, $ext);
+        fm_filesystem()->rename($filepath, $new_path);
 
-        $relative_path = substr($new_path, strlen(base_path()));
+        $relative_path = substr($new_path, strlen(fm_base_path()));
 
-        return jsonResponse(['message' => 'The file has been downloaded', 'file' => $relative_path]);
+        return fm_jsonResponse(['message' => 'The file has been downloaded', 'file' => $relative_path]);
     }
 }

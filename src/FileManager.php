@@ -15,11 +15,11 @@ class FileManager
      * FileManager constructor.
      * Enable the error handler
      *
-     * @param  array  $config
+     * @param  array  $fm_config
      */
-    public function __construct($config = [])
+    public function __construct($fm_config = [])
     {
-        static::$CONFIG = $config;
+        static::$CONFIG = $fm_config;
         $this->_init();
     }
 
@@ -38,7 +38,7 @@ class FileManager
      */
     private function _initPlugins()
     {
-        $plugins = config('plugins');
+        $plugins = fm_config('plugins');
         foreach ($plugins as $plugin) {
             if (method_exists($plugin, 'init')) {
                 $plugin::init();
@@ -47,14 +47,14 @@ class FileManager
     }
 
     /**
-     * @param  Response  $response
+     * @param  Response  $fm_response
      *
      * @return Response
      */
-    private function _send(Response $response)
+    private function _send(Response $fm_response)
     {
-        if ($response) {
-            return $response->prepare(request())->send();
+        if ($fm_response) {
+            return $fm_response->prepare(fm_request())->send();
         }
     }
 
@@ -66,55 +66,55 @@ class FileManager
      */
     public function run()
     {
-        // look for thumb request
-        if (request('thumb')) {
-            return $this->_send(FileLoader::getThumb());
+        // look for thumb fm_request
+        if (fm_request('thumb')) {
+            return $this->_send(FileLoader::fm_getThumb());
         }
 
-        // look for download request
-        if (request('download')) {
+        // look for download fm_request
+        if (fm_request('download')) {
             return $this->_send(FileLoader::downloadFile());
         }
 
-        // look for preview request
-        if (request('preview')) {
+        // look for preview fm_request
+        if (fm_request('preview')) {
             return $this->_send(FileLoader::getPreview());
         }
 
         // secure the path
-        preventJailBreak();
+        fm_preventJailBreak();
 
-        // look up the requested plugin and it's action(method)
-        $plugin  = request('plugin');
-        $action  = request('action');
-        $plugins = config('plugins');
+        // look up the fm_requested plugin and it's action(method)
+        $plugin  = fm_request('plugin');
+        $action  = fm_request('action');
+        $plugins = fm_config('plugins');
         if ( ! array_key_exists($plugin, $plugins)) {
             // plugin does not exist
-            $response = response()->setStatusCode(403);
+            $fm_response = fm_response()->setStatusCode(403);
 
-            return $this->_send($response);
+            return $this->_send($fm_response);
         }
 
         $class = $plugins[$plugin];
         if ( ! class_exists($class)) {
             // class not found
-            $response = response()->setStatusCode(403);
+            $fm_response = fm_response()->setStatusCode(403);
 
-            return $this->_send($response);
+            return $this->_send($fm_response);
         }
 
         $instance = new $class();
 
         if ( ! method_exists($instance, $action)) {
             // action not found
-            $response = response()->setStatusCode(403);
+            $fm_response = fm_response()->setStatusCode(403);
 
-            return $this->_send($response);
+            return $this->_send($fm_response);
         }
 
-        /** @var Response $response */
-        $response = $instance->{$action}();
+        /** @var Response $fm_response */
+        $fm_response = $instance->{$action}();
 
-        return $this->_send($response);
+        return $this->_send($fm_response);
     }
 }

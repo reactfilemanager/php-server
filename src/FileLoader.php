@@ -14,29 +14,29 @@ class FileLoader
      * @return Response
      * @throws InvalidArgumentException
      */
-    public static function getThumb()
+    public static function fm_getThumb()
     {
-        $thumbFile = request('thumb');
-        $file      = base_path($thumbFile);
+        $thumbFile = fm_request('thumb');
+        $file      = fm_base_path($thumbFile);
 
         $thumb     = null;
         if ( ! $file) {
             $thumb = new SplFileInfo(__DIR__.'/thumbs/404.png');
         } else {
-            preventJailBreak($file);
+            fm_preventJailBreak($file);
 
-            $thumb = getThumb($file);
+            $thumb = fm_getThumb($file);
             if ( ! $thumb) {
                 $thumb = new SplFileInfo(__DIR__.'/thumbs/file.png');
             }
         }
 
-        $response = new BinaryFileResponse($thumb->getRealPath());
+        $fm_response = new BinaryFileResponse($thumb->getRealPath());
         if($thumb->getExtension()==='svg') {
-            $response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
+            $fm_response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
         }
 
-        return $response;
+        return $fm_response;
     }
 
     /**
@@ -45,22 +45,22 @@ class FileLoader
     public static function getPreview()
     {
 
-        $file = request('preview');
-        $file      = base_path($file);
+        $file = fm_request('preview');
+        $file      = fm_base_path($file);
         if(!$file || !is_file($file)) {
-            return abort(404);
+            return fm_abort(404);
         }
-        preventJailBreak($file);
+        fm_preventJailBreak($file);
 
         $file = new SplFileInfo($file);
 
-        $response = new BinaryFileResponse($file->getRealPath());
-        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
+        $fm_response = new BinaryFileResponse($file->getRealPath());
+        $fm_response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
         if($file->getExtension()==='svg') {
-            $response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
+            $fm_response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
         }
 
-        return $response;
+        return $fm_response;
     }
 
     /**
@@ -68,12 +68,12 @@ class FileLoader
      */
     public static function downloadFile()
     {
-        $thumbFile = request('download');
-        $file      = base_path($thumbFile);
+        $thumbFile = fm_request('download');
+        $file      = fm_base_path($thumbFile);
         if(!$file || !is_file($file)) {
-            return abort(404);
+            return fm_abort(404);
         }
-        preventJailBreak($file);
+        fm_preventJailBreak($file);
 
         $file = new BinaryFileResponse($file);
         $file->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT);
