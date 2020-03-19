@@ -1,6 +1,6 @@
 <?php
 
-namespace Rocky\FileManager\Plugins;
+namespace ThemeXpert\FileManager\Plugins;
 
 use Exception;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,7 +12,7 @@ class ProgressiveJPEG
      */
     public static function init()
     {
-        add_filter('core@list', function ($list) {
+        \ThemeXpert\FileManager\add_filter('core@list', function ($list) {
             $list['files'] = array_map(function (array $file) {
                 $ext = $file['extension'];
                 if ($ext === 'jpg' || $ext === 'jpeg') {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Rocky\FileManager\Plugins;
+namespace ThemeXpert\FileManager\Plugins;
 
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Component\Finder\SplFileInfo;

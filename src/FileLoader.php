@@ -1,6 +1,6 @@
 <?php
 
-namespace Rocky\FileManager;
+namespace ThemeXpert\FileManager;
 
 use Psr\Cache\InvalidArgumentException;
 use SplFileInfo;

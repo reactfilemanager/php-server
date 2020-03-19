@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
-    (new \Rocky\FileManager\FileManager([
+    (new \ThemeXpert\FileManager\FileManager([
         'root'    => __DIR__.'/tmp/storage/',
         'cache'   => __DIR__.'/tmp/.cache/',
         'uploads' => [

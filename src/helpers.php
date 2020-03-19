@@ -1,6 +1,7 @@
 <?php
+namespace ThemeXpert\FileManager;
 
-use Rocky\FileManager\FileManager;
+use ThemeXpert\FileManager\FileManager;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;

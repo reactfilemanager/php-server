@@ -9,7 +9,7 @@ return [
         'allowed_types' => [],
     ],
     'plugins' => [
-        'core' => \Rocky\FileManager\Plugins\Core::class,
-        'pjpeg' => \Rocky\FileManager\Plugins\ProgressiveJPEG::class,
+        'core' => \ThemeXpert\FileManager\Plugins\Core::class,
+        'pjpeg' => \ThemeXpert\FileManager\Plugins\ProgressiveJPEG::class,
     ]
 ];

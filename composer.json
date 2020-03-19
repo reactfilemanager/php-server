@@ -1,5 +1,5 @@
 {
-  "name": "i-rocky/filemanager-api",
+  "name": "reactfilemanager/php-server",
   "description": "File Manager API",
   "version": "1.0.0",
   "type": "library",
@@ -8,6 +8,10 @@
     {
       "name": "Rocky",
       "email": "wpkpda@gmail.com"
+    },
+    {
+      "name": "Abu Huraira Bin Aman",
+      "email": "shams.bd71@gmail.com"
     }
   ],
   "require": {
@@ -22,7 +26,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Rocky\\FileManager\\": "src/"
+      "ThemeXpert\\FileManager\\": "src/"
     },
     "files": [
       "src/helpers.php"
