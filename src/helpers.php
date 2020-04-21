@@ -518,7 +518,7 @@ function fm_genThumb(SplFileInfo $file)
 
     $path     = $file->getRealPath();
     $resource = null;
-
+    
     if ($ext == 'gif') {
         $resource = imagecreatefromgif($path);
     } elseif ($ext == 'png') {
@@ -532,14 +532,34 @@ function fm_genThumb(SplFileInfo $file)
     $height         = imagesy($resource);
     $desired_height = 150;
     $desired_width  = floor($width * ($desired_height / $height));
-    $virtual_image  = imagecreatetruecolor($desired_width, $desired_height);
+    $virtual_image  = imagecreatetruecolor($desired_width ?: 5, $desired_height);
     imagesavealpha($virtual_image, true);
     $trans_colour = imagecolorallocatealpha($virtual_image, 0, 0, 0, 127);
-    imagefill($virtual_image, 0, 0, $trans_colour);
+    
+    if ($ext == 'png') {
+        // removing the black from the placeholder
+        imagecolortransparent($virtual_image, $trans_colour);
+
+        // turning off alpha blending (to ensure alpha channel information
+        // is preserved, rather than removed (blending with the rest of the
+        // image in the form of black))
+        imagealphablending($virtual_image, false);
+    }else{
+        imagefill($virtual_image, 0, 0, $trans_colour);
+    }
+    // resize
     imagecopyresized($virtual_image, $resource, 0, 0, 0, 0, $desired_width, $desired_height, $width, $height);
+
+    
     ob_start();
     imageinterlace($virtual_image, true);
-    imagejpeg($virtual_image, null, 100);
+    
+    if ($ext == 'png') {
+        imagepng($virtual_image, null, 9);
+    }else{
+        imagejpeg($virtual_image, null, 100);
+    }
+    
     $thumbImage = ob_get_contents();
     ob_end_clean();
 
