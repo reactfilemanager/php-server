@@ -3,8 +3,6 @@
 namespace ThemeXpert\FileManager;
 
 use Psr\Cache\InvalidArgumentException;
-use Symfony\Component\ErrorHandler\Debug;
-use Symfony\Component\ErrorHandler\ErrorHandler;
 use Symfony\Component\HttpFoundation\Response;
 
 class FileManager
@@ -28,8 +26,6 @@ class FileManager
      */
     private function _init()
     {
-        Debug::enable();
-        ErrorHandler::register();
         $this->_initPlugins();
     }
 

@@ -41,7 +41,7 @@ class ProgressiveJPEG
             $contents = fread($handle, 32);
             fclose($handle);
 
-            return (ord($contents[28]) != 0);
+            return isset($contents[28]) && ord($contents[28]) != 0 ? true : false;
         } catch (Exception $e) {
             return false;
         }
