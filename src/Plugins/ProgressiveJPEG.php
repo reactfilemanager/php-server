@@ -12,7 +12,7 @@ class ProgressiveJPEG
      */
     public static function init()
     {
-        \ThemeXpert\FileManager\add_filter('core@list', function ($list) {
+        add_filter('core@list', function ($list) {
             $list['files'] = array_map(function (array $file) {
                 $ext = $file['extension'];
                 if ($ext === 'jpg' || $ext === 'jpeg') {

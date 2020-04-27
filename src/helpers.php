@@ -1,5 +1,4 @@
 <?php
-namespace ThemeXpert\FileManager;
 
 use ThemeXpert\FileManager\FileManager;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
