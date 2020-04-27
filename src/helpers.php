@@ -482,7 +482,7 @@ function getThumb($path)
                 return genThumb($file);
             });
 
-            $thumb = tempnam("/tmp", $file->getFilename());
+            $thumb = tempnam(config('cache'), $file->getFilename());
 
             $handle = fopen($thumb, "w");
             fwrite($handle, $thumbImage);
