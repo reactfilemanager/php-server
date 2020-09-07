@@ -391,11 +391,11 @@ function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
             $dimension = getimagesize($file->getRealPath());
             if ($info) {
                 $info['image_info'] = [
-                    'width'    => $dimension['0'],
-                    'height'   => $dimension['1'],
+                    'width'    => @$dimension['0'],
+                    'height'   => @$dimension['1'],
                     'bits'     => @$dimension['bits'],
                     'channels' => @$dimension['channels'],
-                    'mime'     => $dimension['mime'],
+                    'mime'     => @$dimension['mime'],
                 ];
             }
         }
