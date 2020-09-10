@@ -4,9 +4,9 @@ return [
     'root'    => null,
     'cache'   => null,
     'uploads' => [
-        'max_upload_size' => 0,
+        'max_upload_size' => 50,
         'mime_check' => false,
-        'allowed_types' => [],
+        'allowed_types' => ['.*'],
     ],
     'plugins' => [
         'core' => \ThemeXpert\FileManager\Plugins\Core::class,
