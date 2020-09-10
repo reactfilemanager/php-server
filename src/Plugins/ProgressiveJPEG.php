@@ -37,7 +37,7 @@ class ProgressiveJPEG
     private static function isInterlaced($filename)
     {
         try {
-            $handle   = fopen($filename, "r");
+            $handle = fopen($filename, 'r');
             $contents = fread($handle, 32);
             fclose($handle);
 
@@ -54,7 +54,7 @@ class ProgressiveJPEG
     {
         try {
             $filepath = fm_absolutePath(fm_request_path(), fm_request('filepath'));
-            $im       = imagecreatefromjpeg($filepath);
+            $im = imagecreatefromjpeg($filepath);
             imageinterlace($im, true);
             imagejpeg($im, $filepath, 100);
 
