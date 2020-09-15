@@ -10,8 +10,8 @@ use Symfony\Component\Mime\MimeTypes;
 use Symfony\Contracts\Cache\ItemInterface;
 
 $container = [];
-$actions   = [];
-$filters   = [];
+$actions = [];
+$filters = [];
 
 /**
  * @param $hook
@@ -20,7 +20,7 @@ $filters   = [];
 function fm_add_action($hook, $callable)
 {
     global $actions;
-    if ( ! isset($actions[$hook])) {
+    if (!isset($actions[$hook])) {
         $actions[$hook] = [];
     }
     $actions[$hook][] = $callable;
@@ -48,7 +48,7 @@ function fm_do_action($hook, $value)
 function fm_add_filter($hook, $callable)
 {
     global $filters;
-    if ( ! isset($filters[$hook])) {
+    if (!isset($filters[$hook])) {
         $filters[$hook] = [];
     }
     $filters[$hook][] = $callable;
@@ -117,13 +117,13 @@ function fm_preventJailBreak($path = null)
     }
 
     $path = $path ? $path : fm_base_path(fm_request('path'));
-    if ( ! $path) {
+    if (!$path) {
         fm_abort(403, ['message' => 'Invalid fm_request']);
     }
 
     $root = realpath(fm_config('root'));
     // the path MUST start with the root
-    if ( ! fm_startsWith($path, $root)) {
+    if (!fm_startsWith($path, $root)) {
         fm_abort(403, ['message' => 'Jailbreak detected']);
     }
 }
@@ -136,7 +136,7 @@ function fm_preventJailBreak($path = null)
 function fm_request($key = null)
 {
     global $container;
-    if ( ! isset($container['fm_request'])) {
+    if (!isset($container['fm_request'])) {
         $container['fm_request'] = Request::createFromGlobals();
     }
 
@@ -155,7 +155,7 @@ function fm_request($key = null)
 function fm_response($flush = false)
 {
     global $container;
-    if ( ! isset($container['fm_response'])) {
+    if (!isset($container['fm_response'])) {
         if ($flush) {
             return null;
         }
@@ -187,7 +187,7 @@ function fm_jsonResponse($array, $code = 200)
 function fm_mimeTypes()
 {
     global $container;
-    if ( ! isset($container['mime_types'])) {
+    if (!isset($container['mime_types'])) {
         $container['mime_types'] = new MimeTypes();
     }
 
@@ -208,7 +208,7 @@ function fm_finder()
 function fm_filesystem()
 {
     global $container;
-    if ( ! isset($container['fm_filesystem'])) {
+    if (!isset($container['fm_filesystem'])) {
         $container['fm_filesystem'] = new Filesystem();
     }
 
@@ -221,7 +221,7 @@ function fm_filesystem()
 function fm_cache()
 {
     global $container;
-    if ( ! isset($container['fm_cache'])) {
+    if (!isset($container['fm_cache'])) {
         $container['fm_cache'] = new FilesystemAdapter('_thumb_fm_cache', 0, fm_config('fm_cache'));
     }
 
@@ -237,10 +237,10 @@ function fm_cache()
 function fm_config($path, $value = null)
 {
     global $container;
-    if ( ! isset($container['fm_config'])) {
-        $container['fm_config'] = fm_deepMerge(include __DIR__.'/config.php', FileManager::$CONFIG);
+    if (!isset($container['fm_config'])) {
+        $container['fm_config'] = fm_deepMerge(include __DIR__ . '/config.php', FileManager::$CONFIG);
     }
-    if ( ! $value) {
+    if (!$value) {
         return fm_getConfig($path);
     } else {
         return fm_setConfig($path, $value);
@@ -256,7 +256,7 @@ function fm_config($path, $value = null)
 function fm_deepMerge($array1, $array2)
 {
     foreach ($array2 as $key => $value) {
-        if ( ! isset($array1[$key])) {
+        if (!isset($array1[$key])) {
             $array1[$key] = $value;
             continue;
         }
@@ -280,7 +280,7 @@ function fm_deepMerge($array1, $array2)
 function fm_getConfig($path)
 {
     global $container;
-    $cf    = $container['fm_config'];
+    $cf = $container['fm_config'];
     $_path = explode('.', $path);
     foreach ($_path as $_p) {
         if (isset($cf[$_p])) {
@@ -302,9 +302,9 @@ function fm_getConfig($path)
 function fm_setConfig($path, $value)
 {
     global $container;
-    $cf    = &$container['fm_config'];
+    $cf = &$container['fm_config'];
     $_path = explode('.', $path);
-    $last  = array_pop($_path);
+    $last = array_pop($_path);
     foreach ($_path as $_p) {
         if (isset($cf[$_p])) {
             $cf = &$cf[$_p];
@@ -370,19 +370,19 @@ function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
     $path = fm_request('path');
 
     $info = [
-        'name'          => $file->getFilename(),
-        'path'          => fm_sanitizePath($path.'/'.$file->getRelativePathname()),
-        'is_dir'        => $file->isDir(),
-        'is_file'       => $file->isFile(),
-        'is_link'       => $file->isLink(),
-        'is_readable'   => $file->isReadable(),
-        'is_writable'   => $file->isWritable(),
+        'name' => $file->getFilename(),
+        'path' => fm_sanitizePath($path . '/' . $file->getRelativePathname()),
+        'is_dir' => $file->isDir(),
+        'is_file' => $file->isFile(),
+        'is_link' => $file->isLink(),
+        'is_readable' => $file->isReadable(),
+        'is_writable' => $file->isWritable(),
         'is_executable' => $file->isExecutable(),
-        'perms'         => fm_getFilePerms($file->getRealPath()),
-        'size'          => $file->getSize(),
-        'extension'     => strtolower($file->getExtension()),
+        'perms' => fm_getFilePerms($file->getRealPath()),
+        'size' => $file->getSize(),
+        'extension' => strtolower($file->getExtension()),
         'last_modified' => $file->getMTime(),
-        'extra'         => [],
+        'extra' => [],
     ];
 
     if ($file->isFile()) {
@@ -391,11 +391,11 @@ function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
             $dimension = getimagesize($file->getRealPath());
             if ($info) {
                 $info['image_info'] = [
-                    'width'    => @$dimension['0'],
-                    'height'   => @$dimension['1'],
-                    'bits'     => @$dimension['bits'],
+                    'width' => @$dimension['0'],
+                    'height' => @$dimension['1'],
+                    'bits' => @$dimension['bits'],
                     'channels' => @$dimension['channels'],
-                    'mime'     => @$dimension['mime'],
+                    'mime' => @$dimension['mime'],
                 ];
             }
         }
@@ -412,15 +412,15 @@ function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
  */
 function fm_getSafePath($name, $ext = '')
 {
-    $filepath = fm_sanitizePath(fm_request_path().'/'.$name);
+    $filepath = fm_sanitizePath(fm_request_path() . '/' . $name);
     if ($ext !== '') {
-        $filepath .= '.'.$ext;
+        $filepath .= '.' . $ext;
     }
     $i = 1;
     while (fm_filesystem()->exists($filepath)) {
-        $filepath = fm_sanitizePath(fm_request_path().'/'.$name.'('.($i++).')');
+        $filepath = fm_sanitizePath(fm_request_path() . '/' . $name . '(' . ($i++) . ')');
         if ($ext !== '') {
-            $filepath .= '.'.$ext;
+            $filepath .= '.' . $ext;
         }
     }
 
@@ -444,7 +444,7 @@ function fm_ensureSafeFile($filepath)
             }
         }
 
-        if ( ! $valid) {
+        if (!$valid) {
             fm_filesystem()->remove($filepath);
 
             fm_abort(403, ['message' => 'File type not allowed']);
@@ -462,33 +462,32 @@ function fm_ensureSafeFile($filepath)
  */
 function fm_getThumb($path)
 {
-    $thumbDir = __DIR__.'/thumbs/';
+    $thumbDir = __DIR__ . '/thumbs/';
     $thumbExt = '.png';
 
-    $file  = new SplFileInfo($path);
+    $file = new SplFileInfo($path);
     $thumb = null;
-    $ext   = strtolower($file->getExtension());
+    $ext = strtolower($file->getExtension());
 
     if ($file->isDir()) {
-        $thumb = $thumbDir.'folder'.$thumbExt;
+        $thumb = $thumbDir . 'folder' . $thumbExt;
     } elseif ($file->isLink()) {
-        $thumb = $thumbDir.'symlink'.$thumbExt;
+        $thumb = $thumbDir . 'symlink' . $thumbExt;
     } else {
         if ($ext === 'svg') {
             return $file;
         } elseif (in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
             $thumbImage = fm_cache()->get(md5_file($file->getRealPath()), function (ItemInterface $_) use ($file) {
-
                 return fm_genThumb($file);
             });
 
-            $thumb = tempnam(config('cache'), $file->getFilename());
+            $thumb = tempnam(fm_config('cache'), $file->getFilename());
 
-            $handle = fopen($thumb, "w");
+            $handle = fopen($thumb, 'w');
             fwrite($handle, $thumbImage);
             fclose($handle);
-        } elseif (fm_filesystem()->exists($thumbDir.$ext.$thumbExt)) {
-            $thumb = $thumbDir.$ext.$thumbExt;
+        } elseif (fm_filesystem()->exists($thumbDir . $ext . $thumbExt)) {
+            $thumb = $thumbDir . $ext . $thumbExt;
         } else {
             return null;
         }
@@ -516,9 +515,9 @@ function fm_genThumb(SplFileInfo $file)
 {
     $ext = strtolower($file->getExtension());
 
-    $path     = $file->getRealPath();
+    $path = $file->getRealPath();
     $resource = null;
-    
+
     if ($ext == 'gif') {
         $resource = imagecreatefromgif($path);
     } elseif ($ext == 'png') {
@@ -528,14 +527,14 @@ function fm_genThumb(SplFileInfo $file)
     } elseif ($ext == 'webp') {
         $resource = imagecreatefromwebp($path);
     }
-    $width          = imagesx($resource);
-    $height         = imagesy($resource);
+    $width = imagesx($resource);
+    $height = imagesy($resource);
     $desired_height = 150;
-    $desired_width  = floor($width * ($desired_height / $height));
-    $virtual_image  = imagecreatetruecolor($desired_width ?: 5, $desired_height);
+    $desired_width = floor($width * ($desired_height / $height));
+    $virtual_image = imagecreatetruecolor($desired_width ?: 5, $desired_height);
     imagesavealpha($virtual_image, true);
     $trans_colour = imagecolorallocatealpha($virtual_image, 0, 0, 0, 127);
-    
+
     if ($ext == 'png') {
         // removing the black from the placeholder
         imagecolortransparent($virtual_image, $trans_colour);
@@ -544,22 +543,21 @@ function fm_genThumb(SplFileInfo $file)
         // is preserved, rather than removed (blending with the rest of the
         // image in the form of black))
         imagealphablending($virtual_image, false);
-    }else{
+    } else {
         imagefill($virtual_image, 0, 0, $trans_colour);
     }
     // resize
     imagecopyresized($virtual_image, $resource, 0, 0, 0, 0, $desired_width, $desired_height, $width, $height);
 
-    
     ob_start();
     imageinterlace($virtual_image, true);
-    
+
     if ($ext == 'png') {
         imagepng($virtual_image, null, 9);
-    }else{
+    } else {
         imagejpeg($virtual_image, null, 100);
     }
-    
+
     $thumbImage = ob_get_contents();
     ob_end_clean();
 
@@ -603,21 +601,21 @@ function fm_getFilePerms($file)
             $info = 'u';
     }
 
-// Owner
+    // Owner
     $info .= (($perms & 0x0100) ? 'r' : '-');
     $info .= (($perms & 0x0080) ? 'w' : '-');
     $info .= (($perms & 0x0040) ?
         (($perms & 0x0800) ? 's' : 'x') :
         (($perms & 0x0800) ? 'S' : '-'));
 
-// Group
+    // Group
     $info .= (($perms & 0x0020) ? 'r' : '-');
     $info .= (($perms & 0x0010) ? 'w' : '-');
     $info .= (($perms & 0x0008) ?
         (($perms & 0x0400) ? 's' : 'x') :
         (($perms & 0x0400) ? 'S' : '-'));
 
-// World
+    // World
     $info .= (($perms & 0x0004) ? 'r' : '-');
     $info .= (($perms & 0x0002) ? 'w' : '-');
     $info .= (($perms & 0x0001) ?

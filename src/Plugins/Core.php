@@ -14,11 +14,11 @@ class Core
      */
     public function list()
     {
-        $dirs  = fm_finder()->depth(0)->directories()->in(fm_request_path());
+        $dirs = fm_finder()->depth(0)->directories()->in(fm_request_path());
         $files = fm_finder()->depth(0)->files()->in(fm_request_path());
 
         $list = [
-            'dirs'  => [],
+            'dirs' => [],
             'files' => [],
         ];
         /** @var SplFileInfo $dir */
@@ -39,7 +39,7 @@ class Core
      */
     public function new_dir()
     {
-        $new_path = fm_sanitizePath(fm_request_path().'/'.fm_request('dirname'));
+        $new_path = fm_sanitizePath(fm_request_path() . '/' . fm_request('dirname'));
         fm_preventJailBreak($new_path);
 
         if (fm_filesystem()->exists($new_path)) {
@@ -59,7 +59,7 @@ class Core
      */
     public function new_file()
     {
-        $new_file = fm_sanitizePath(fm_request_path().'/'.fm_request('filename'));
+        $new_file = fm_sanitizePath(fm_request_path() . '/' . fm_request('filename'));
         fm_preventJailBreak($new_file);
 
         if (fm_filesystem()->exists($new_file)) {
@@ -80,7 +80,7 @@ class Core
     {
         $filepath = fm_absolutePath(fm_request_path(), fm_request('target'));
         fm_preventJailBreak($filepath);
-        if ( ! $filepath) {
+        if (!$filepath) {
             return fm_jsonResponse(['message' => 'Requested file does not exist'], 404);
         }
 
@@ -97,10 +97,10 @@ class Core
     {
         $from = fm_absolutePath(fm_request_path(), fm_request('from'));
         fm_preventJailBreak($from);
-        if ( ! $from) {
+        if (!$from) {
             return fm_jsonResponse(['message' => 'File/folder does not exist'], 404);
         }
-        $to = fm_sanitizePath(fm_request_path().'/'.fm_request('to'));
+        $to = fm_sanitizePath(fm_request_path() . '/' . fm_request('to'));
         fm_preventJailBreak($to);
         if (fm_filesystem()->exists($to)) {
             return fm_jsonResponse(['message' => 'A file/folder with the same name exists'], 406);
@@ -108,7 +108,7 @@ class Core
 
         fm_filesystem()->rename($from, $to);
 
-        if ( ! fm_filesystem()->exists($to)) {
+        if (!fm_filesystem()->exists($to)) {
             return fm_jsonResponse(['message' => 'Could not rename'], 500);
         }
 
@@ -138,9 +138,9 @@ class Core
      */
     public function chmod()
     {
-        $target = fm_sanitizePath(fm_request_path().'/'.fm_request('target'));
+        $target = fm_sanitizePath(fm_request_path() . '/' . fm_request('target'));
         fm_preventJailBreak($target);
-        if ( ! fm_filesystem()->exists($target)) {
+        if (!fm_filesystem()->exists($target)) {
             return fm_jsonResponse(['message' => 'target does not exist'], 403);
         }
 
@@ -159,9 +159,9 @@ class Core
      */
     public function delete()
     {
-        $target = fm_sanitizePath(fm_request_path().'/'.fm_request('target'));
+        $target = fm_sanitizePath(fm_request_path() . '/' . fm_request('target'));
         fm_preventJailBreak($target);
-        if ( ! fm_filesystem()->exists($target)) {
+        if (!fm_filesystem()->exists($target)) {
             return fm_jsonResponse(['message' => 'target does not exist'], 403);
         }
         if (is_file($target)) {
@@ -182,22 +182,22 @@ class Core
      */
     private function performCopyOperation($move = false)
     {
-        $source      = fm_absolutePath(fm_base_path().fm_request('source'));
-        $destination = fm_absolutePath(fm_base_path().fm_request('destination'));
+        $source = fm_absolutePath(fm_base_path() . fm_request('source'));
+        $destination = fm_absolutePath(fm_base_path() . fm_request('destination'));
 
-        if ( ! $source || ! $destination) {
+        if (!$source || !$destination) {
             return fm_jsonResponse(['message' => 'Invalid fm_request'], 403);
         }
 
         fm_preventJailBreak($source);
         fm_preventJailBreak($destination);
 
-        if ( ! fm_filesystem()->exists($source)) {
+        if (!fm_filesystem()->exists($source)) {
             return fm_jsonResponse(['message' => 'Source does not exist'], 403);
         }
 
-        $_source      = new \SplFileInfo($source);
-        $_destination = fm_sanitizePath($destination.'/'.$_source->getFilename());
+        $_source = new \SplFileInfo($source);
+        $_destination = fm_sanitizePath($destination . '/' . $_source->getFilename());
 
         if (fm_filesystem()->exists($_destination)) {
             return fm_jsonResponse(['message' => 'Destination already exists'], 403);
@@ -234,15 +234,15 @@ class Core
         /** @var SplFileInfo $file */
         foreach ($files as $file) {
             $items++;
-            fm_filesystem()->copy($file->getRealPath(), $destination.'/'.$file->getRelativePathname());
+            fm_filesystem()->copy($file->getRealPath(), $destination . '/' . $file->getRelativePathname());
         }
 
         $dirs = fm_finder()->directories()->in($source);
         /** @var SplFileInfo $dir */
         foreach ($dirs as $dir) {
             $items++;
-            $path = $destination.'/'.$dir->getRelativePathname();
-            if ( ! fm_filesystem()->exists($path)) {
+            $path = $destination . '/' . $dir->getRelativePathname();
+            if (!fm_filesystem()->exists($path)) {
                 fm_filesystem()->mkdir($path);
             }
         }
@@ -267,7 +267,7 @@ class Core
             fm_filesystem()->remove($file->getRealPath());
         }
 
-        $dirs  = fm_finder()->directories()->in($target);
+        $dirs = fm_finder()->directories()->in($target);
         $_dirs = [];
         /** @var SplFileInfo $dir */
         foreach ($dirs as $dir) {
@@ -299,7 +299,7 @@ class Core
 
         if ($max_upload_size) {
             if ($max_upload_size * 1048576 < $file->getSize()) {
-                fm_abort(406, ['message' => 'File size must be less than '.$max_upload_size.'MB']);
+                fm_abort(406, ['message' => 'File size must be less than ' . $max_upload_size . 'MB']);
             }
         }
 
@@ -315,8 +315,8 @@ class Core
                 // keep both files
                 // save the new file under new name
                 $_filename = pathinfo($filename, PATHINFO_FILENAME);
-                $_ext      = pathinfo($filename, PATHINFO_EXTENSION);
-                $name      = fm_getSafePath($_filename, $_ext);
+                $_ext = pathinfo($filename, PATHINFO_EXTENSION);
+                $name = fm_getSafePath($_filename, $_ext);
                 $file->move(fm_request_path(), pathinfo($name, PATHINFO_BASENAME));
             } else {
                 // send the message to confirm an option
@@ -342,20 +342,21 @@ class Core
      */
     public function remote_download()
     {
-        $url  = fm_request('url');
+        $url = fm_request('url');
         $name = pathinfo($url, PATHINFO_FILENAME);
-        $ext  = pathinfo($url, PATHINFO_EXTENSION);
+        $ext = pathinfo($url, PATHINFO_EXTENSION);
 
         $filepath = fm_getSafePath($name, $ext);
 
         fm_filesystem()->copy($url, $filepath);
 
-        if ( ! fm_filesystem()->exists($filepath)) {
+        if (!fm_filesystem()->exists($filepath)) {
             return fm_jsonResponse(['message' => 'Could not download remote file'], 500);
         }
 
-        $mime     = fm_ensureSafeFile($filepath);
-        $ext      = fm_mimeTypes()->getExtensions($mime)[0];
+        $mime = fm_ensureSafeFile($filepath);
+        $ext = fm_mimeTypes()->getExtensions($mime)[0];
+        $name = preg_replace('/[^a-zA-Z0-9]+/', '', $name);
         $new_path = fm_getSafePath($name, $ext);
         fm_filesystem()->rename($filepath, $new_path);
 
