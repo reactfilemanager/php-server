@@ -4,3 +4,4 @@ vendor
 tmp/storage
 tmp/storage/*
 tmp/.cache/*
+.DS_Store
