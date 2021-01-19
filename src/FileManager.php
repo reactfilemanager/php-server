@@ -14,6 +14,8 @@ class FileManager
      * Enable the error handler
      *
      * @param  array  $fm_config
+     *
+     * @since 1.0.0
      */
     public function __construct($fm_config = [])
     {
@@ -22,7 +24,7 @@ class FileManager
     }
 
     /**
-     *
+     * @since 1.0.0
      */
     private function _init()
     {
@@ -30,7 +32,7 @@ class FileManager
     }
 
     /**
-     *
+     * @since 1.0.0
      */
     private function _initPlugins()
     {
@@ -46,6 +48,7 @@ class FileManager
      * @param  Response  $fm_response
      *
      * @return Response
+     * @since 1.0.0
      */
     private function _send(Response $fm_response)
     {
@@ -59,6 +62,7 @@ class FileManager
      *
      * @return Response
      * @throws InvalidArgumentException
+     * @since 1.0.0
      */
     public function run()
     {

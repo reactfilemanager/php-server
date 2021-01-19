@@ -9,18 +9,20 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mime\MimeTypes;
 use Symfony\Contracts\Cache\ItemInterface;
 
-$container = [];
-$actions = [];
-$filters = [];
+$fmcontainer = [];
+$actions   = [];
+$filters   = [];
 
 /**
  * @param $hook
  * @param $callable
+ *
+ * @since 1.0.0
  */
 function fm_add_action($hook, $callable)
 {
     global $actions;
-    if (!isset($actions[$hook])) {
+    if ( ! isset($actions[$hook])) {
         $actions[$hook] = [];
     }
     $actions[$hook][] = $callable;
@@ -31,6 +33,7 @@ function fm_add_action($hook, $callable)
  * @param $value
  *
  * @return mixed
+ * @since 1.0.0
  */
 function fm_do_action($hook, $value)
 {
@@ -44,11 +47,13 @@ function fm_do_action($hook, $value)
 /**
  * @param $hook
  * @param $callable
+ *
+ * @since 1.0.0
  */
 function fm_add_filter($hook, $callable)
 {
     global $filters;
-    if (!isset($filters[$hook])) {
+    if ( ! isset($filters[$hook])) {
         $filters[$hook] = [];
     }
     $filters[$hook][] = $callable;
@@ -59,6 +64,7 @@ function fm_add_filter($hook, $callable)
  * @param $value
  *
  * @return mixed
+ * @since 1.0.0
  */
 function fm_apply_filter($hook, $value)
 {
@@ -73,6 +79,7 @@ function fm_apply_filter($hook, $value)
  * @param  string  $path
  *
  * @return string
+ * @since 1.0.0
  */
 function fm_base_path($path = null)
 {
@@ -81,6 +88,7 @@ function fm_base_path($path = null)
 
 /**
  * @return string
+ * @since 1.0.0
  */
 function fm_request_path()
 {
@@ -91,6 +99,7 @@ function fm_request_path()
  * @param  mixed  ...$parts
  *
  * @return false|string
+ * @since 1.0.0
  */
 function fm_absolutePath(...$parts)
 {
@@ -101,6 +110,7 @@ function fm_absolutePath(...$parts)
  * @param $path
  *
  * @return string|string[]|null
+ * @since 1.0.0
  */
 function fm_sanitizePath($path)
 {
@@ -109,6 +119,8 @@ function fm_sanitizePath($path)
 
 /**
  * @param  string  $path
+ *
+ * @since 1.0.0
  */
 function fm_preventJailBreak($path = null)
 {
@@ -117,13 +129,13 @@ function fm_preventJailBreak($path = null)
     }
 
     $path = $path ? $path : fm_base_path(fm_request('path'));
-    if (!$path) {
+    if ( ! $path) {
         fm_abort(403, ['message' => 'Invalid fm_request']);
     }
 
     $root = realpath(fm_config('root'));
     // the path MUST start with the root
-    if (!fm_startsWith($path, $root)) {
+    if ( ! fm_startsWith($path, $root)) {
         fm_abort(403, ['message' => 'Jailbreak detected']);
     }
 }
@@ -132,37 +144,39 @@ function fm_preventJailBreak($path = null)
  * @param  string  $key
  *
  * @return Request|mixed
+ * @since 1.0.0
  */
 function fm_request($key = null)
 {
-    global $container;
-    if (!isset($container['fm_request'])) {
-        $container['fm_request'] = Request::createFromGlobals();
+    global $fmcontainer;
+    if ( ! isset($fmcontainer['fm_request'])) {
+        $fmcontainer['fm_request'] = Request::createFromGlobals();
     }
 
     if ($key !== null) {
-        return $container['fm_request']->get($key);
+        return $fmcontainer['fm_request']->get($key);
     }
 
-    return $container['fm_request'];
+    return $fmcontainer['fm_request'];
 }
 
 /**
  * @param  bool  $flush
  *
  * @return Response|null
+ * @since 1.0.0
  */
 function fm_response($flush = false)
 {
-    global $container;
-    if (!isset($container['fm_response'])) {
+    global $fmcontainer;
+    if ( ! isset($fmcontainer['fm_response'])) {
         if ($flush) {
             return null;
         }
-        $container['fm_response'] = new Response();
+        $fmcontainer['fm_response'] = new Response();
     }
 
-    return $container['fm_response'];
+    return $fmcontainer['fm_response'];
 }
 
 /**
@@ -171,6 +185,7 @@ function fm_response($flush = false)
  * @param  int  $code
  *
  * @return Response|null
+ * @since 1.0.0
  */
 function fm_jsonResponse($array, $code = 200)
 {
@@ -183,19 +198,21 @@ function fm_jsonResponse($array, $code = 200)
 
 /**
  * @return MimeTypes
+ * @since 1.0.0
  */
 function fm_mimeTypes()
 {
-    global $container;
-    if (!isset($container['mime_types'])) {
-        $container['mime_types'] = new MimeTypes();
+    global $fmcontainer;
+    if ( ! isset($fmcontainer['mime_types'])) {
+        $fmcontainer['mime_types'] = new MimeTypes();
     }
 
-    return $container['mime_types'];
+    return $fmcontainer['mime_types'];
 }
 
 /**
  * @return Finder
+ * @since 1.0.0
  */
 function fm_finder()
 {
@@ -204,28 +221,30 @@ function fm_finder()
 
 /**
  * @return Filesystem
+ * @since 1.0.0
  */
 function fm_filesystem()
 {
-    global $container;
-    if (!isset($container['fm_filesystem'])) {
-        $container['fm_filesystem'] = new Filesystem();
+    global $fmcontainer;
+    if ( ! isset($fmcontainer['fm_filesystem'])) {
+        $fmcontainer['fm_filesystem'] = new Filesystem();
     }
 
-    return $container['fm_filesystem'];
+    return $fmcontainer['fm_filesystem'];
 }
 
 /**
  * @return FilesystemAdapter
+ * @since 1.0.0
  */
 function fm_cache()
 {
-    global $container;
-    if (!isset($container['fm_cache'])) {
-        $container['fm_cache'] = new FilesystemAdapter('_thumb_fm_cache', 0, fm_config('fm_cache'));
+    global $fmcontainer;
+    if ( ! isset($fmcontainer['fm_cache'])) {
+        $fmcontainer['fm_cache'] = new FilesystemAdapter('_thumb_fm_cache', 0, fm_config('fm_cache'));
     }
 
-    return $container['fm_cache'];
+    return $fmcontainer['fm_cache'];
 }
 
 /**
@@ -233,14 +252,15 @@ function fm_cache()
  * @param  mixed  $value
  *
  * @return mixed|null
+ * @since 1.0.0
  */
 function fm_config($path, $value = null)
 {
-    global $container;
-    if (!isset($container['fm_config'])) {
-        $container['fm_config'] = fm_deepMerge(include __DIR__ . '/config.php', FileManager::$CONFIG);
+    global $fmcontainer;
+    if ( ! isset($fmcontainer['fm_config'])) {
+        $fmcontainer['fm_config'] = fm_deepMerge(include __DIR__.'/config.php', FileManager::$CONFIG);
     }
-    if (!$value) {
+    if ( ! $value) {
         return fm_getConfig($path);
     } else {
         return fm_setConfig($path, $value);
@@ -252,11 +272,12 @@ function fm_config($path, $value = null)
  * @param $array2
  *
  * @return mixed
+ * @since 1.0.0
  */
 function fm_deepMerge($array1, $array2)
 {
     foreach ($array2 as $key => $value) {
-        if (!isset($array1[$key])) {
+        if ( ! isset($array1[$key])) {
             $array1[$key] = $value;
             continue;
         }
@@ -276,11 +297,12 @@ function fm_deepMerge($array1, $array2)
  * @param $path
  *
  * @return null
+ * @since 1.0.0
  */
 function fm_getConfig($path)
 {
-    global $container;
-    $cf = $container['fm_config'];
+    global $fmcontainer;
+    $cf    = $fmcontainer['fm_config'];
     $_path = explode('.', $path);
     foreach ($_path as $_p) {
         if (isset($cf[$_p])) {
@@ -298,13 +320,14 @@ function fm_getConfig($path)
  * @param $value
  *
  * @return bool
+ * @since 1.0.0
  */
 function fm_setConfig($path, $value)
 {
-    global $container;
-    $cf = &$container['fm_config'];
+    global $fmcontainer;
+    $cf    = &$fmcontainer['fm_config'];
     $_path = explode('.', $path);
-    $last = array_pop($_path);
+    $last  = array_pop($_path);
     foreach ($_path as $_p) {
         if (isset($cf[$_p])) {
             $cf = &$cf[$_p];
@@ -322,6 +345,7 @@ function fm_setConfig($path, $value)
  * @param $needle
  *
  * @return bool
+ * @since 1.0.0
  */
 function fm_startsWith($haystack, $needle)
 {
@@ -335,6 +359,7 @@ function fm_startsWith($haystack, $needle)
  * @param $needle
  *
  * @return bool
+ * @since 1.0.0
  */
 function fm_endsWith($haystack, $needle)
 {
@@ -351,6 +376,7 @@ function fm_endsWith($haystack, $needle)
  * @param  array  $data
  *
  * @return null
+ * @since 1.0.0
  */
 function fm_abort($code, $data = ['message' => 'Aborted'])
 {
@@ -364,25 +390,26 @@ function fm_abort($code, $data = ['message' => 'Aborted'])
  * @param  \Symfony\Component\Finder\SplFileInfo  $file
  *
  * @return array
+ * @since 1.0.0
  */
 function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
 {
     $path = fm_request('path');
 
     $info = [
-        'name' => $file->getFilename(),
-        'path' => fm_sanitizePath($path . '/' . $file->getRelativePathname()),
-        'is_dir' => $file->isDir(),
-        'is_file' => $file->isFile(),
-        'is_link' => $file->isLink(),
-        'is_readable' => $file->isReadable(),
-        'is_writable' => $file->isWritable(),
+        'name'          => $file->getFilename(),
+        'path'          => fm_sanitizePath($path.'/'.$file->getRelativePathname()),
+        'is_dir'        => $file->isDir(),
+        'is_file'       => $file->isFile(),
+        'is_link'       => $file->isLink(),
+        'is_readable'   => $file->isReadable(),
+        'is_writable'   => $file->isWritable(),
         'is_executable' => $file->isExecutable(),
-        'perms' => fm_getFilePerms($file->getRealPath()),
-        'size' => $file->getSize(),
-        'extension' => strtolower($file->getExtension()),
+        'perms'         => fm_getFilePerms($file->getRealPath()),
+        'size'          => $file->getSize(),
+        'extension'     => strtolower($file->getExtension()),
         'last_modified' => $file->getMTime(),
-        'extra' => [],
+        'extra'         => [],
     ];
 
     if ($file->isFile()) {
@@ -391,11 +418,11 @@ function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
             $dimension = getimagesize($file->getRealPath());
             if ($info) {
                 $info['image_info'] = [
-                    'width' => @$dimension['0'],
-                    'height' => @$dimension['1'],
-                    'bits' => @$dimension['bits'],
+                    'width'    => @$dimension['0'],
+                    'height'   => @$dimension['1'],
+                    'bits'     => @$dimension['bits'],
                     'channels' => @$dimension['channels'],
-                    'mime' => @$dimension['mime'],
+                    'mime'     => @$dimension['mime'],
                 ];
             }
         }
@@ -409,18 +436,19 @@ function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
  * @param  string  $ext
  *
  * @return string|string[]|null
+ * @since 1.0.0
  */
 function fm_getSafePath($name, $ext = '')
 {
-    $filepath = fm_sanitizePath(fm_request_path() . '/' . $name);
+    $filepath = fm_sanitizePath(fm_request_path().'/'.$name);
     if ($ext !== '') {
-        $filepath .= '.' . $ext;
+        $filepath .= '.'.$ext;
     }
     $i = 1;
     while (fm_filesystem()->exists($filepath)) {
-        $filepath = fm_sanitizePath(fm_request_path() . '/' . $name . '(' . ($i++) . ')');
+        $filepath = fm_sanitizePath(fm_request_path().'/'.$name.'('.($i++).')');
         if ($ext !== '') {
-            $filepath .= '.' . $ext;
+            $filepath .= '.'.$ext;
         }
     }
 
@@ -431,6 +459,7 @@ function fm_getSafePath($name, $ext = '')
  * @param $filepath
  *
  * @return string|Response|null
+ * @since 1.0.0
  */
 function fm_ensureSafeFile($filepath)
 {
@@ -444,7 +473,7 @@ function fm_ensureSafeFile($filepath)
             }
         }
 
-        if (!$valid) {
+        if ( ! $valid) {
             fm_filesystem()->remove($filepath);
 
             fm_abort(403, ['message' => 'File type not allowed']);
@@ -459,20 +488,21 @@ function fm_ensureSafeFile($filepath)
  *
  * @return string|false
  * @throws \Psr\Cache\InvalidArgumentException
+ * @since 1.0.0
  */
 function fm_getThumb($path)
 {
-    $thumbDir = __DIR__ . '/thumbs/';
+    $thumbDir = __DIR__.'/thumbs/';
     $thumbExt = '.png';
 
-    $file = new SplFileInfo($path);
+    $file  = new SplFileInfo($path);
     $thumb = null;
-    $ext = strtolower($file->getExtension());
+    $ext   = strtolower($file->getExtension());
 
     if ($file->isDir()) {
-        $thumb = $thumbDir . 'folder' . $thumbExt;
+        $thumb = $thumbDir.'folder'.$thumbExt;
     } elseif ($file->isLink()) {
-        $thumb = $thumbDir . 'symlink' . $thumbExt;
+        $thumb = $thumbDir.'symlink'.$thumbExt;
     } else {
         if ($ext === 'svg') {
             return $file;
@@ -486,8 +516,8 @@ function fm_getThumb($path)
             $handle = fopen($thumb, 'w');
             fwrite($handle, $thumbImage);
             fclose($handle);
-        } elseif (fm_filesystem()->exists($thumbDir . $ext . $thumbExt)) {
-            $thumb = $thumbDir . $ext . $thumbExt;
+        } elseif (fm_filesystem()->exists($thumbDir.$ext.$thumbExt)) {
+            $thumb = $thumbDir.$ext.$thumbExt;
         } else {
             return null;
         }
@@ -500,6 +530,7 @@ function fm_getThumb($path)
  * @param $filepath
  *
  * @throws \Psr\Cache\InvalidArgumentException
+ * @since 1.0.0
  */
 function fm_deleteThumb($filepath)
 {
@@ -510,12 +541,13 @@ function fm_deleteThumb($filepath)
  * @param  SplFileInfo  $file
  *
  * @return false|string
+ * @since 1.0.0
  */
 function fm_genThumb(SplFileInfo $file)
 {
     $ext = strtolower($file->getExtension());
 
-    $path = $file->getRealPath();
+    $path     = $file->getRealPath();
     $resource = null;
 
     if ($ext == 'gif') {
@@ -527,11 +559,11 @@ function fm_genThumb(SplFileInfo $file)
     } elseif ($ext == 'webp') {
         $resource = imagecreatefromwebp($path);
     }
-    $width = imagesx($resource);
-    $height = imagesy($resource);
+    $width          = imagesx($resource);
+    $height         = imagesy($resource);
     $desired_height = 150;
-    $desired_width = floor($width * ($desired_height / $height));
-    $virtual_image = imagecreatetruecolor($desired_width ?: 5, $desired_height);
+    $desired_width  = floor($width * ($desired_height / $height));
+    $virtual_image  = imagecreatetruecolor($desired_width ?: 5, $desired_height);
     imagesavealpha($virtual_image, true);
     $trans_colour = imagecolorallocatealpha($virtual_image, 0, 0, 0, 127);
 
@@ -570,6 +602,7 @@ function fm_genThumb(SplFileInfo $file)
  * @param $file
  *
  * @return string
+ * @since 1.0.0
  */
 function fm_getFilePerms($file)
 {
