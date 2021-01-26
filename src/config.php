@@ -10,6 +10,6 @@ return [
     ],
     'plugins' => [
         'core' => \ThemeXpert\FileManager\Plugins\Core::class,
-        'pjpeg' => \ThemeXpert\FileManager\Plugins\ProgressiveJPEG::class,
+        // 'pjpeg' => \ThemeXpert\FileManager\Plugins\ProgressiveJPEG::class,
     ]
 ];

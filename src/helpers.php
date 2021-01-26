@@ -69,10 +69,13 @@ function fm_add_filter($hook, $callable)
 function fm_apply_filter($hook, $value)
 {
     global $filters;
+    if($filters && $filters[$hook] !== null){
+        return array_reduce($filters[$hook], function ($value, $filter) {
+            return $filter($value);
+        }, $value);
+    }
 
-    return array_reduce($filters[$hook], function ($value, $filter) {
-        return $filter($value);
-    }, $value);
+    return $value;
 }
 
 /**
@@ -388,11 +391,12 @@ function fm_abort($code, $data = ['message' => 'Aborted'])
 
 /**
  * @param  \Symfony\Component\Finder\SplFileInfo  $file
+ * @param  string  $type
  *
  * @return array
  * @since 1.0.0
  */
-function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
+function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file, $type = 'dirs')
 {
     $path = fm_request('path');
 
@@ -412,7 +416,12 @@ function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file)
         'extra'         => [],
     ];
 
-    if ($file->isFile()) {
+    /**
+     * previously was $file->isFile()
+     * now added as params
+     * @since 1.3.0
+     */
+    if ($type === 'files') {
         $mime = fm_mimeTypes()->guessMimeType($file->getRealPath());
         if (preg_match('#^image/#', $mime)) {
             $dimension = getimagesize($file->getRealPath());

@@ -17,17 +17,20 @@ class Core
         $dirs = fm_finder()->depth(0)->directories()->in(fm_request_path());
         $files = fm_finder()->depth(0)->files()->in(fm_request_path());
 
+        // check if there are any search results
         $list = [
             'dirs' => [],
             'files' => [],
         ];
+
         /** @var SplFileInfo $dir */
         foreach ($dirs as $dir) {
             $list['dirs'][] = fm_getFileInfo($dir);
         }
+
         /** @var SplFileInfo $file */
         foreach ($files as $file) {
-            $list['files'][] = fm_getFileInfo($file);
+            $list['files'][] = fm_getFileInfo($file, 'files');
         }
         $filtered_list = fm_apply_filter('core@list', $list);
 
