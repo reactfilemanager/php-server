@@ -193,10 +193,21 @@ function fm_response($flush = false)
 function fm_jsonResponse($array, $code = 200)
 {
     $fm_response = fm_response()->setStatusCode($code);
-    $fm_response->setContent(json_encode($array));
+    $fm_response->setContent(json_encode(fm_utf8_converter($array)));
     $fm_response->headers->set('Content-Type', 'application/json');
 
     return $fm_response;
+}
+
+function fm_utf8_converter($array)
+{
+    array_walk_recursive($array, function (&$item, $key) {
+        if (!mb_detect_encoding($item, 'utf-8', true)) {
+            $item = utf8_encode($item);
+        }
+    });
+
+    return $array;
 }
 
 /**
