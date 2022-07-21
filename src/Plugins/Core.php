@@ -302,7 +302,7 @@ class Core
          * getPathname returns the path
          * @since 1.4.4 Jul 21 2022
          */
-        $realPath = $file->getRealPath() !== false ?: $file->getPathname();
+        $realPath = $file->getRealPath() ? $file->getRealPath() : $file->getPathname();
         fm_ensureSafeFile($realPath);
 
         $max_upload_size = fm_config('uploads.max_upload_size');

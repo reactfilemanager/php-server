@@ -410,6 +410,8 @@ function fm_abort($code, $data = ['message' => 'Aborted'])
 function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file, $type = 'dirs')
 {
     $path = fm_request('path');
+    $realPath = $file->getRealPath() ? $file->getRealPath() : $file->getPathname();
+
 
     $info = [
         'name'          => $file->getFilename(),
@@ -420,7 +422,7 @@ function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file, $type = 'di
         'is_readable'   => $file->isReadable(),
         'is_writable'   => $file->isWritable(),
         'is_executable' => $file->isExecutable(),
-        'perms'         => fm_getFilePerms($file->getRealPath()),
+        'perms'         => fm_getFilePerms($realPath),
         'size'          => $file->getSize(),
         'extension'     => strtolower($file->getExtension()),
         'last_modified' => $file->getMTime(),
@@ -433,9 +435,10 @@ function fm_getFileInfo(\Symfony\Component\Finder\SplFileInfo $file, $type = 'di
      * @since 1.3.0
      */
     if ($type === 'files') {
-        $mime = fm_mimeTypes()->guessMimeType($file->getRealPath());
+        $realPath = $file->getRealPath() ? $file->getRealPath() : $file->getPathname();
+        $mime = fm_mimeTypes()->guessMimeType($realPath);
         if (preg_match('#^image/#', $mime)) {
-            $dimension = getimagesize($file->getRealPath());
+            $dimension = getimagesize($realPath);
             if ($info) {
                 $info['image_info'] = [
                     'width'    => @$dimension['0'],
@@ -512,12 +515,13 @@ function fm_ensureSafeFile($filepath)
  */
 function fm_getThumb($path)
 {
-    $thumbDir = __DIR__.'/thumbs/';
+    $thumbDir = __DIR__.DIRECTORY_SEPARATOR.'thumbs'.DIRECTORY_SEPARATOR;
     $thumbExt = '.png';
 
     $file  = new SplFileInfo($path);
     $thumb = null;
     $ext   = strtolower($file->getExtension());
+    $realPath = $file->getRealPath() ? $file->getRealPath() : $file->getPathname();
 
     if ($file->isDir()) {
         $thumb = $thumbDir.'folder'.$thumbExt;
@@ -527,7 +531,7 @@ function fm_getThumb($path)
         if ($ext === 'svg') {
             return $file;
         } elseif (in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
-            $thumbImage = fm_cache()->get(md5_file($file->getRealPath()), function (ItemInterface $_) use ($file) {
+            $thumbImage = fm_cache()->get(md5_file($realPath), function (ItemInterface $_) use ($file) {
                 return fm_genThumb($file);
             });
 
@@ -567,7 +571,8 @@ function fm_genThumb(SplFileInfo $file)
 {
     $ext = strtolower($file->getExtension());
 
-    $path     = $file->getRealPath();
+    $realPath = $file->getRealPath() ? $file->getRealPath() : $file->getPathname();
+    $path     = $realPath;
     $resource = null;
 
     if ($ext == 'gif') {

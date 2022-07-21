@@ -31,7 +31,15 @@ class FileLoader
             }
         }
 
-        $fm_response = new BinaryFileResponse($thumb->getRealPath());
+        /**
+         * Added getPathname checker to avoid false in windows
+         * getRealPath returns false on windows on some server.
+         * getPathname returns the path
+         * @since 1.4.4 Jul 21 2022
+         */
+        $realPath = $thumb->getRealPath() ? $thumb->getRealPath() : $thumb->getPathname();
+        $fm_response = new BinaryFileResponse($realPath);
+
         if($thumb->getExtension()==='svg') {
             $fm_response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
         }
