@@ -296,7 +296,14 @@ class Core
         $file = fm_request()->files->get('file');
 
         // ensure if the file is allowed to be uploaded
-        fm_ensureSafeFile($file->getRealPath());
+        /**
+         * Added getPathname checker to avoid false in windows
+         * getRealPath returns false on windows on some server.
+         * getPathname returns the path
+         * @since 1.4.4 Jul 21 2022
+         */
+        $realPath = $file->getRealPath() !== false ?: $file->getPathname();
+        fm_ensureSafeFile($realPath);
 
         $max_upload_size = fm_config('uploads.max_upload_size');
 
