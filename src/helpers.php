@@ -535,7 +535,7 @@ function fm_getThumb($path)
                 return fm_genThumb($file);
             });
 
-            $thumb = tempnam(fm_config('cache'), $file->getFilename());
+            $thumb = tempnam(fm_config('cache') ?: sys_get_temp_dir(), $file->getFilename());
 
             $handle = fopen($thumb, 'w');
             fwrite($handle, $thumbImage);
