@@ -511,7 +511,13 @@ function fm_ensureSafeFile($filepath)
 }
 
 /**
- * File name has an extension that the web server could execute.
+ * File name carries a server-executable extension.
+ *
+ * These are always blocked, independent of any admin file-type setting,
+ * because they can run code on the server (RCE) — no legitimate media file
+ * needs them. Browser-active-but-not-server-executed types (svg, html, …) are
+ * intentionally NOT here: those are governed by the configurable MIME allowlist
+ * (`uploads.allowed_types`) so an admin can opt into them.
  *
  * Every dot-separated segment is inspected (not just the final one) so that
  * names like "shell.php.jpg" — which Apache/mod_php can still run when a
@@ -526,12 +532,10 @@ function fm_hasExecutableExtension($filename)
 {
     static $blocked = [
         'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'pht', 'phps',
-        'phpt', 'phar', 'inc', 'shtml', 'shtm', 'stm',
+        'phpt', 'phar', 'inc', 'shtml', 'shtm', 'stm', 'phtm',
         'htaccess', 'htpasswd', 'user.ini',
         'cgi', 'pl', 'py', 'rb', 'jsp', 'jspx', 'asp', 'aspx', 'ashx', 'asmx',
         'sh', 'bash', 'exe', 'com', 'bat', 'cmd', 'msi',
-        // Browser-active content served inline is a stored-XSS vector.
-        'svg', 'svgz', 'html', 'htm', 'xhtml', 'swf',
     ];
 
     $name = strtolower(basename((string) $filename));
