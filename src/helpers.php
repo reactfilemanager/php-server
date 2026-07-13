@@ -486,6 +486,10 @@ function fm_getSafePath($name, $ext = '')
  */
 function fm_ensureSafeFile($filepath)
 {
+    // A MIME check alone is bypassable with a polyglot (e.g. GIF header + PHP)
+    // stored under a .php name, so the extension must be validated too.
+    fm_assertSafeExtension($filepath);
+
     $mime = fm_mimeTypes()->guessMimeType($filepath);
     if (fm_config('uploads.mime_check')) {
         $valid = false;
@@ -504,6 +508,112 @@ function fm_ensureSafeFile($filepath)
     }
 
     return $mime;
+}
+
+/**
+ * File name has an extension that the web server could execute.
+ *
+ * Every dot-separated segment is inspected (not just the final one) so that
+ * names like "shell.php.jpg" — which Apache/mod_php can still run when a
+ * handler is bound to .php — are also rejected.
+ *
+ * @param  string  $filename  A file name or path.
+ *
+ * @return bool
+ * @since 1.0.0
+ */
+function fm_hasExecutableExtension($filename)
+{
+    static $blocked = [
+        'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'pht', 'phps',
+        'phpt', 'phar', 'inc', 'shtml', 'shtm', 'stm',
+        'htaccess', 'htpasswd', 'user.ini',
+        'cgi', 'pl', 'py', 'rb', 'jsp', 'jspx', 'asp', 'aspx', 'ashx', 'asmx',
+        'sh', 'bash', 'exe', 'com', 'bat', 'cmd', 'msi',
+        // Browser-active content served inline is a stored-XSS vector.
+        'svg', 'svgz', 'html', 'htm', 'xhtml', 'swf',
+    ];
+
+    $name = strtolower(basename((string) $filename));
+    // ".htaccess" style names have no "base" before the dot.
+    $segments = explode('.', ltrim($name, '.'));
+    array_shift($segments); // drop the base name; keep every extension segment
+
+    foreach ($segments as $segment) {
+        if (in_array($segment, $blocked, true)) {
+            return true;
+        }
+    }
+
+    // Bare dangerous names without an extension (e.g. ".htaccess").
+    return in_array($name, ['.htaccess', '.htpasswd', '.user.ini'], true);
+}
+
+/**
+ * Abort the request if the file name carries an executable/unsafe extension.
+ *
+ * @param  string  $filename
+ *
+ * @return void
+ * @since 1.0.0
+ */
+function fm_assertSafeExtension($filename)
+{
+    if (fm_hasExecutableExtension($filename)) {
+        fm_abort(403, ['message' => 'File type not allowed']);
+    }
+}
+
+/**
+ * SSRF guard: allow only absolute http(s) URLs whose host does not resolve to a
+ * private, loopback, link-local or otherwise reserved address.
+ *
+ * @param  string  $url
+ *
+ * @return bool
+ * @since 1.0.0
+ */
+function fm_isSafeRemoteUrl($url)
+{
+    if (!is_string($url) || $url === '') {
+        return false;
+    }
+
+    $parts  = parse_url($url);
+    $scheme = strtolower($parts['scheme'] ?? '');
+    $host   = $parts['host'] ?? '';
+
+    if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+        return false;
+    }
+
+    $ips = [];
+
+    if (filter_var($host, FILTER_VALIDATE_IP)) {
+        $ips[] = $host;
+    } else {
+        $records = @dns_get_record($host, DNS_A | DNS_AAAA) ?: [];
+        foreach ($records as $record) {
+            if (!empty($record['ip'])) {
+                $ips[] = $record['ip'];
+            }
+            if (!empty($record['ipv6'])) {
+                $ips[] = $record['ipv6'];
+            }
+        }
+
+        if (empty($ips)) {
+            return false;
+        }
+    }
+
+    foreach ($ips as $ip) {
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /**
