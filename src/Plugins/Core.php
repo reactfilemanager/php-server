@@ -361,6 +361,10 @@ class Core
         $filepath = fm_absolutePath(fm_request_path(), $file->getClientOriginalName());
 
         if (fm_filesystem()->exists($filepath)) {
+            // Strip active content from SVGs so they cannot run script when
+            // served inline as image/svg+xml.
+            fm_sanitizeStoredFile($filepath);
+
             return fm_jsonResponse(['message' => 'File upload successful']);
         }
 
@@ -401,6 +405,9 @@ class Core
         $name = preg_replace('/[^a-zA-Z0-9]+/', '', $name);
         $new_path = fm_getSafePath($name, $ext);
         fm_filesystem()->rename($filepath, $new_path);
+
+        // Strip active content from SVGs pulled from a remote URL too.
+        fm_sanitizeStoredFile($new_path);
 
         $relative_path = substr($new_path, strlen(fm_base_path()));
 

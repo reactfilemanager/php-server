@@ -621,6 +621,65 @@ function fm_isSafeRemoteUrl($url)
 }
 
 /**
+ * Strip active content from an SVG so it cannot execute script when the file is
+ * later served inline (image/svg+xml). Removes <script>/<foreignObject>/<use>
+ * blocks, inline event handlers (on*=) and javascript:/data: URIs. This is the
+ * upload-time half of the XSS defence; served responses additionally carry a
+ * sandbox CSP (see FileLoader) as belt-and-suspenders.
+ *
+ * @param  string  $svg
+ *
+ * @return string
+ * @since 1.0.0
+ */
+function fm_sanitizeSvg($svg)
+{
+    $svg = (string) $svg;
+
+    // Drop <script> and <foreignObject> blocks (content included).
+    $svg = preg_replace('#<\s*(script|foreignObject)\b[^>]*>.*?<\s*/\s*\1\s*>#is', '', $svg);
+    // Drop the self-closing / unmatched forms and <use> (xlink external refs).
+    $svg = preg_replace('#<\s*(script|foreignObject|use)\b[^>]*/?>#is', '', $svg);
+    // Remove inline event handlers (onload=, onclick=, ...).
+    $svg = preg_replace('/\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $svg);
+    // Neutralise javascript:/data: URIs in any remaining attribute.
+    $svg = preg_replace('/(href|xlink:href|src)\s*=\s*("|\')\s*(javascript|data)\s*:[^"\']*(\2)/i', '$1=$2#$4', $svg);
+
+    return $svg;
+}
+
+/**
+ * If the stored file is an SVG, rewrite it with active content stripped. Called
+ * after a file is finalised on disk (upload / remote download) so both entry
+ * points are covered.
+ *
+ * @param  string  $filepath
+ *
+ * @return void
+ * @since 1.0.0
+ */
+function fm_sanitizeStoredFile($filepath)
+{
+    if (!is_string($filepath) || !is_file($filepath)) {
+        return;
+    }
+
+    if (strtolower(pathinfo($filepath, PATHINFO_EXTENSION)) !== 'svg') {
+        return;
+    }
+
+    $content = @file_get_contents($filepath);
+    if ($content === false) {
+        return;
+    }
+
+    $clean = fm_sanitizeSvg($content);
+    if ($clean !== $content) {
+        @file_put_contents($filepath, $clean);
+    }
+}
+
+/**
  * @param $path
  *
  * @return string|false

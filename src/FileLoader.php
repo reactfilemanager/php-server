@@ -40,9 +40,7 @@ class FileLoader
         $realPath = $thumb->getRealPath() ? $thumb->getRealPath() : $thumb->getPathname();
         $fm_response = new BinaryFileResponse($realPath);
 
-        if($thumb->getExtension()==='svg') {
-            $fm_response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
-        }
+        self::hardenHeaders($fm_response, $thumb->getExtension());
 
         return $fm_response;
     }
@@ -64,11 +62,34 @@ class FileLoader
 
         $fm_response = new BinaryFileResponse($file->getRealPath());
         $fm_response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
-        if($file->getExtension()==='svg') {
-            $fm_response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
-        }
+
+        self::hardenHeaders($fm_response, $file->getExtension());
 
         return $fm_response;
+    }
+
+    /**
+     * Apply anti-XSS headers to a served file. `nosniff` stops content-type
+     * confusion; SVGs (served inline as image/svg+xml) additionally get a
+     * sandbox CSP so any embedded script cannot execute even for files that
+     * were uploaded before server-side SVG sanitisation existed.
+     *
+     * @param  Response  $response
+     * @param  string    $extension
+     *
+     * @return void
+     */
+    private static function hardenHeaders($response, $extension)
+    {
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+
+        if (strtolower((string) $extension) === 'svg') {
+            $response->headers->set('Content-Type', 'image/svg+xml'); // MACOS workaround
+            $response->headers->set(
+                'Content-Security-Policy',
+                "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+            );
+        }
     }
 
     /**
