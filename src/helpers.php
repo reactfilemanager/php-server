@@ -486,6 +486,10 @@ function fm_getSafePath($name, $ext = '')
  */
 function fm_ensureSafeFile($filepath)
 {
+    // A MIME check alone is bypassable with a polyglot (e.g. GIF header + PHP)
+    // stored under a .php name, so the extension must be validated too.
+    fm_assertSafeExtension($filepath);
+
     $mime = fm_mimeTypes()->guessMimeType($filepath);
     if (fm_config('uploads.mime_check')) {
         $valid = false;
@@ -504,6 +508,175 @@ function fm_ensureSafeFile($filepath)
     }
 
     return $mime;
+}
+
+/**
+ * File name carries a server-executable extension.
+ *
+ * These are always blocked, independent of any admin file-type setting,
+ * because they can run code on the server (RCE) — no legitimate media file
+ * needs them. Browser-active-but-not-server-executed types (svg, html, …) are
+ * intentionally NOT here: those are governed by the configurable MIME allowlist
+ * (`uploads.allowed_types`) so an admin can opt into them.
+ *
+ * Every dot-separated segment is inspected (not just the final one) so that
+ * names like "shell.php.jpg" — which Apache/mod_php can still run when a
+ * handler is bound to .php — are also rejected.
+ *
+ * @param  string  $filename  A file name or path.
+ *
+ * @return bool
+ * @since 1.0.0
+ */
+function fm_hasExecutableExtension($filename)
+{
+    static $blocked = [
+        'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'pht', 'phps',
+        'phpt', 'phar', 'inc', 'shtml', 'shtm', 'stm', 'phtm',
+        'htaccess', 'htpasswd', 'user.ini',
+        'cgi', 'pl', 'py', 'rb', 'jsp', 'jspx', 'asp', 'aspx', 'ashx', 'asmx',
+        'sh', 'bash', 'exe', 'com', 'bat', 'cmd', 'msi',
+    ];
+
+    $name = strtolower(basename((string) $filename));
+    // ".htaccess" style names have no "base" before the dot.
+    $segments = explode('.', ltrim($name, '.'));
+    array_shift($segments); // drop the base name; keep every extension segment
+
+    foreach ($segments as $segment) {
+        if (in_array($segment, $blocked, true)) {
+            return true;
+        }
+    }
+
+    // Bare dangerous names without an extension (e.g. ".htaccess").
+    return in_array($name, ['.htaccess', '.htpasswd', '.user.ini'], true);
+}
+
+/**
+ * Abort the request if the file name carries an executable/unsafe extension.
+ *
+ * @param  string  $filename
+ *
+ * @return void
+ * @since 1.0.0
+ */
+function fm_assertSafeExtension($filename)
+{
+    if (fm_hasExecutableExtension($filename)) {
+        fm_abort(403, ['message' => 'File type not allowed']);
+    }
+}
+
+/**
+ * SSRF guard: allow only absolute http(s) URLs whose host does not resolve to a
+ * private, loopback, link-local or otherwise reserved address.
+ *
+ * @param  string  $url
+ *
+ * @return bool
+ * @since 1.0.0
+ */
+function fm_isSafeRemoteUrl($url)
+{
+    if (!is_string($url) || $url === '') {
+        return false;
+    }
+
+    $parts  = parse_url($url);
+    $scheme = strtolower($parts['scheme'] ?? '');
+    $host   = $parts['host'] ?? '';
+
+    if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+        return false;
+    }
+
+    $ips = [];
+
+    if (filter_var($host, FILTER_VALIDATE_IP)) {
+        $ips[] = $host;
+    } else {
+        $records = @dns_get_record($host, DNS_A | DNS_AAAA) ?: [];
+        foreach ($records as $record) {
+            if (!empty($record['ip'])) {
+                $ips[] = $record['ip'];
+            }
+            if (!empty($record['ipv6'])) {
+                $ips[] = $record['ipv6'];
+            }
+        }
+
+        if (empty($ips)) {
+            return false;
+        }
+    }
+
+    foreach ($ips as $ip) {
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Strip active content from an SVG so it cannot execute script when the file is
+ * later served inline (image/svg+xml). Removes <script>/<foreignObject>/<use>
+ * blocks, inline event handlers (on*=) and javascript:/data: URIs. This is the
+ * upload-time half of the XSS defence; served responses additionally carry a
+ * sandbox CSP (see FileLoader) as belt-and-suspenders.
+ *
+ * @param  string  $svg
+ *
+ * @return string
+ * @since 1.0.0
+ */
+function fm_sanitizeSvg($svg)
+{
+    $svg = (string) $svg;
+
+    // Drop <script> and <foreignObject> blocks (content included).
+    $svg = preg_replace('#<\s*(script|foreignObject)\b[^>]*>.*?<\s*/\s*\1\s*>#is', '', $svg);
+    // Drop the self-closing / unmatched forms and <use> (xlink external refs).
+    $svg = preg_replace('#<\s*(script|foreignObject|use)\b[^>]*/?>#is', '', $svg);
+    // Remove inline event handlers (onload=, onclick=, ...).
+    $svg = preg_replace('/\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $svg);
+    // Neutralise javascript:/data: URIs in any remaining attribute.
+    $svg = preg_replace('/(href|xlink:href|src)\s*=\s*("|\')\s*(javascript|data)\s*:[^"\']*(\2)/i', '$1=$2#$4', $svg);
+
+    return $svg;
+}
+
+/**
+ * If the stored file is an SVG, rewrite it with active content stripped. Called
+ * after a file is finalised on disk (upload / remote download) so both entry
+ * points are covered.
+ *
+ * @param  string  $filepath
+ *
+ * @return void
+ * @since 1.0.0
+ */
+function fm_sanitizeStoredFile($filepath)
+{
+    if (!is_string($filepath) || !is_file($filepath)) {
+        return;
+    }
+
+    if (strtolower(pathinfo($filepath, PATHINFO_EXTENSION)) !== 'svg') {
+        return;
+    }
+
+    $content = @file_get_contents($filepath);
+    if ($content === false) {
+        return;
+    }
+
+    $clean = fm_sanitizeSvg($content);
+    if ($clean !== $content) {
+        @file_put_contents($filepath, $clean);
+    }
 }
 
 /**

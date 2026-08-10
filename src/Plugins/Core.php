@@ -64,6 +64,7 @@ class Core
     {
         $new_file = fm_sanitizePath(fm_request_path() . '/' . fm_request('filename'));
         fm_preventJailBreak($new_file);
+        fm_assertSafeExtension($new_file);
 
         if (fm_filesystem()->exists($new_file)) {
             return fm_jsonResponse(['message' => 'File exists']);
@@ -86,6 +87,7 @@ class Core
         if (!$filepath) {
             return fm_jsonResponse(['message' => 'Requested file does not exist'], 404);
         }
+        fm_assertSafeExtension($filepath);
 
         $content = fm_request('content');
         fm_filesystem()->dumpFile($filepath, $content);
@@ -105,6 +107,11 @@ class Core
         }
         $to = fm_sanitizePath(fm_request_path() . '/' . fm_request('to'));
         fm_preventJailBreak($to);
+        // Only guard extension changes on files (directories have no extension
+        // policy, and renaming a dir to "x.php" is harmless).
+        if (is_file($from)) {
+            fm_assertSafeExtension($to);
+        }
         if (fm_filesystem()->exists($to)) {
             return fm_jsonResponse(['message' => 'A file/folder with the same name exists'], 406);
         }
@@ -151,7 +158,15 @@ class Core
         $mode = str_pad($mode, 3, '0', STR_PAD_LEFT);
         $mode = intval($mode);
 
-        fm_filesystem()->chmod($target, octdec($mode));
+        $octalMode = octdec($mode);
+
+        // Never allow a regular file to be made executable (defence in depth:
+        // an executable file in a web-served media root is a foothold).
+        if (is_file($target)) {
+            $octalMode &= ~0111;
+        }
+
+        fm_filesystem()->chmod($target, $octalMode);
 
         return fm_jsonResponse(['message' => 'File permission has been updated.']);
     }
@@ -303,6 +318,11 @@ class Core
          * @since 1.4.4 Jul 21 2022
          */
         $realPath = $file->getRealPath() ? $file->getRealPath() : $file->getPathname();
+
+        // The uploaded temp file has a random name, so the executable-extension
+        // check must run against the client-supplied name the file will be
+        // stored under, not the temp path.
+        fm_assertSafeExtension($file->getClientOriginalName());
         fm_ensureSafeFile($realPath);
 
         $max_upload_size = fm_config('uploads.max_upload_size');
@@ -341,6 +361,10 @@ class Core
         $filepath = fm_absolutePath(fm_request_path(), $file->getClientOriginalName());
 
         if (fm_filesystem()->exists($filepath)) {
+            // Strip active content from SVGs so they cannot run script when
+            // served inline as image/svg+xml.
+            fm_sanitizeStoredFile($filepath);
+
             return fm_jsonResponse(['message' => 'File upload successful']);
         }
 
@@ -353,8 +377,20 @@ class Core
     public function remote_download()
     {
         $url = fm_request('url');
+
+        // SSRF guard: only fetch public http(s) URLs. Blocks file:// local
+        // reads and requests to internal/reserved hosts (cloud metadata etc.).
+        if (!fm_isSafeRemoteUrl($url)) {
+            return fm_jsonResponse(['message' => 'Invalid or disallowed URL'], 403);
+        }
+
         $name = pathinfo($url, PATHINFO_FILENAME);
         $ext = pathinfo($url, PATHINFO_EXTENSION);
+
+        // Never let the URL dictate an executable extension for the temp file.
+        if (fm_hasExecutableExtension($name . '.' . $ext)) {
+            $ext = 'download';
+        }
 
         $filepath = fm_getSafePath($name, $ext);
 
@@ -369,6 +405,9 @@ class Core
         $name = preg_replace('/[^a-zA-Z0-9]+/', '', $name);
         $new_path = fm_getSafePath($name, $ext);
         fm_filesystem()->rename($filepath, $new_path);
+
+        // Strip active content from SVGs pulled from a remote URL too.
+        fm_sanitizeStoredFile($new_path);
 
         $relative_path = substr($new_path, strlen(fm_base_path()));
 
