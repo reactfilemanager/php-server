@@ -705,8 +705,16 @@ function fm_getThumb($path)
             return $file;
         } elseif (in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
             $thumbImage = fm_cache()->get(md5_file($realPath), function (ItemInterface $_) use ($file) {
-                return fm_genThumb($file);
+                // Cache '' for an image GD can't read, so the same broken
+                // file isn't decoded again on every listing.
+                return fm_genThumb($file) ?: '';
             });
+
+            // Corrupt, truncated or unsupported image: fall back to the
+            // generic file icon instead of a 500.
+            if ($thumbImage === '') {
+                return null;
+            }
 
             $thumb = tempnam(fm_config('cache') ?: sys_get_temp_dir(), $file->getFilename());
 
@@ -749,14 +757,19 @@ function fm_genThumb(SplFileInfo $file)
     $resource = null;
 
     if ($ext == 'gif') {
-        $resource = imagecreatefromgif($path);
+        $resource = @imagecreatefromgif($path);
     } elseif ($ext == 'png') {
-        $resource = imagecreatefrompng($path);
+        $resource = @imagecreatefrompng($path);
     } elseif ($ext == 'jpg' || $ext == 'jpeg') {
-        $resource = imagecreatefromjpeg($path);
-    } elseif ($ext == 'webp') {
-        $resource = imagecreatefromwebp($path);
+        $resource = @imagecreatefromjpeg($path);
+    } elseif ($ext == 'webp' && function_exists('imagecreatefromwebp')) {
+        $resource = @imagecreatefromwebp($path);
     }
+
+    if ( ! $resource) {
+        return false;
+    }
+
     $width          = imagesx($resource);
     $height         = imagesy($resource);
     $desired_height = 150;
