@@ -20,10 +20,23 @@ class FileLoader
         $file      = fm_base_path($thumbFile);
 
         $thumb     = null;
+        $etag      = null;
         if ( ! $file) {
             $thumb = new SplFileInfo(__DIR__.'/thumbs/404.png');
         } else {
             fm_preventJailBreak($file);
+
+            // Thumbnails are requested again on every open of the file
+            // manager, and each request boots the whole CMS. Answer a repeat
+            // from the browser cache: the key changes when the file does.
+            $etag = '"'.fm_thumbKey($file).'"';
+            $ifNoneMatch = fm_request()->headers->get('If-None-Match');
+            if ($ifNoneMatch !== null && trim($ifNoneMatch) === $etag) {
+                $notModified = new Response('', 304);
+                self::cacheHeaders($notModified, $etag);
+
+                return $notModified;
+            }
 
             $thumb = fm_getThumb($file);
             if ( ! $thumb) {
@@ -40,9 +53,35 @@ class FileLoader
         $realPath = $thumb->getRealPath() ? $thumb->getRealPath() : $thumb->getPathname();
         $fm_response = new BinaryFileResponse($realPath);
 
+        // A generated thumbnail is a temp file of ours: remove it once sent.
+        // Never the original (SVGs are served as themselves).
+        $tempDir = realpath(fm_config('cache') ?: sys_get_temp_dir());
+        if (strpos($thumb->getFilename(), 'fmthumb_') === 0
+            && $tempDir !== false
+            && realpath($thumb->getPath()) === $tempDir) {
+            $fm_response->deleteFileAfterSend(true);
+        }
+
         self::hardenHeaders($fm_response, $thumb->getExtension());
 
+        if ($etag !== null) {
+            self::cacheHeaders($fm_response, $etag);
+        }
+
         return $fm_response;
+    }
+
+    /**
+     * Let the browser keep a thumbnail for a while and revalidate by ETag.
+     * Private: the URL carries the user's session token.
+     *
+     * @param  Response  $response
+     * @param  string    $etag
+     */
+    private static function cacheHeaders($response, $etag)
+    {
+        $response->headers->set('Cache-Control', 'private, max-age=3600');
+        $response->headers->set('ETag', $etag);
     }
 
     /**
