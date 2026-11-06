@@ -704,7 +704,7 @@ function fm_getThumb($path)
         if ($ext === 'svg') {
             return $file;
         } elseif (in_array($ext, ['gif', 'jpg', 'png', 'jpeg', 'webp'])) {
-            $thumbImage = fm_cache()->get(md5_file($realPath), function (ItemInterface $_) use ($file) {
+            $thumbImage = fm_cache()->get(fm_thumbKey($realPath), function (ItemInterface $_) use ($file) {
                 // Cache '' for an image GD can't read, so the same broken
                 // file isn't decoded again on every listing.
                 return fm_genThumb($file) ?: '';
@@ -716,7 +716,9 @@ function fm_getThumb($path)
                 return null;
             }
 
-            $thumb = tempnam(fm_config('cache') ?: sys_get_temp_dir(), $file->getFilename());
+            // The fmthumb_ prefix marks it as ours: FileLoader deletes it
+            // after sending (it used to leak one temp file per thumbnail).
+            $thumb = tempnam(fm_config('cache') ?: sys_get_temp_dir(), 'fmthumb_');
 
             $handle = fopen($thumb, 'w');
             fwrite($handle, $thumbImage);
@@ -739,7 +741,31 @@ function fm_getThumb($path)
  */
 function fm_deleteThumb($filepath)
 {
-    fm_cache()->delete(md5_file($filepath));
+    fm_cache()->delete(fm_thumbKey($filepath));
+}
+
+/**
+ * Cache key for a file's thumbnail: path + size + mtime.
+ *
+ * It used to be md5_file(), which read the whole original (often several MB)
+ * on every thumbnail request, cached or not. Size and mtime change whenever
+ * the file does, so they invalidate the thumbnail just as well.
+ *
+ * @param  string  $path
+ *
+ * @return string
+ * @since  1.6.4
+ */
+function fm_thumbKey($path)
+{
+    $real = realpath($path) ?: (string) $path;
+    $stat = @stat($real);
+
+    if ( ! $stat) {
+        return md5($real);
+    }
+
+    return md5($real.'|'.$stat['size'].'|'.$stat['mtime']);
 }
 
 /**
